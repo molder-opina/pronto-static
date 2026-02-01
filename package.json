@@ -1,0 +1,25 @@
+{
+  "name": "pronto-static",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev:employees": "PRONTO_TARGET=employees vite",
+    "dev:clients": "PRONTO_TARGET=clients vite",
+    "build:employees": "PRONTO_TARGET=employees vite build",
+    "build:clients": "PRONTO_TARGET=clients vite build",
+    "build": "npm run build:employees && npm run build:clients",
+    "lint": "eslint \"src/vue/{employees,clients}/**/*.{ts,tsx,vue}\"",
+    "format": "prettier --write \"{src/**/*.ts,src/**/*.tsx,src/**/*.vue,*.{ts,tsx,js,json,md}}\""
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^6.0.3",
+    "typescript": "^5.3.3",
+    "vite": "^5.0.8",
+    "vue": "^3.5.27"
+  },
+  "dependencies": {
+    "lucide": "^0.563.0",
+    "lucide-vue-next": "^0.563.0"
+  }
+}
