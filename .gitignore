@@ -10,6 +10,9 @@ downloads/
 eggs/
 .eggs/
 lib/
+!src/vue/shared/lib/
+src/vue/shared/lib/*
+!src/vue/shared/lib/keyboard-shortcuts.ts
 lib64/
 parts/
 sdist/

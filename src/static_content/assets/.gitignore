@@ -1,3 +1,6 @@
 # Ignore actual static assets; populate this folder outside of git.
 *
 !.gitignore
+!js/
+!js/shared/
+!js/shared/bindings.js

@@ -14,6 +14,22 @@ import {
   deriveAreaCodeFromLabel,
 } from "@shared/domain";
 import { createIcons, icons } from "lucide/dist/umd/lucide.js";
+import { initKeyboardShortcuts } from "@shared/lib/keyboard-shortcuts";
+
+declare global {
+  interface Window {
+    Lucide?: {
+      createIcons: typeof createIcons;
+      icons: typeof icons;
+    };
+    ProntoTableCode?: {
+      buildTableCode: typeof buildTableCode;
+      validateTableCode: typeof validateTableCode;
+      parseTableCode: typeof parseTableCode;
+      deriveAreaCodeFromLabel: typeof deriveAreaCodeFromLabel;
+    };
+  }
+}
 
 function setupGlobalErrorHandlers(): void {
   window.addEventListener("error", (event) => {
@@ -40,18 +56,13 @@ function initCartApp(): void {
   const backdrop = document.getElementById("cart-backdrop");
 
   if (panel) {
-    // Create a wrapper for the Vue app
     const wrapper = document.createElement("div");
     wrapper.id = "vue-cart-root";
 
-    // Insert wrapper where the panel was
     panel.parentNode?.insertBefore(wrapper, panel);
-
-    // Remove the server-rendered elements as Vue will render them
     panel.remove();
     if (backdrop) backdrop.remove();
 
-    // Mount Vue App
     try {
       const app = createApp(CartPanel);
       app.mount(wrapper);
@@ -72,6 +83,7 @@ function initializeBaseApp(): void {
   initializePostPaymentFeedback();
   initDraggableModals();
   initMicroAnimations();
+  initKeyboardShortcuts();
   initCartApp();
 }
 
@@ -84,14 +96,9 @@ function exposeTableCodeHelpers(): void {
   };
 }
 
-// Expose Lucide
-(window as any).Lucide = {
-  createIcons,
-  icons,
-};
-
 document.addEventListener("DOMContentLoaded", () => {
   setupGlobalErrorHandlers();
   exposeTableCodeHelpers();
   initializeBaseApp();
+  window.Lucide = { createIcons, icons };
 });
