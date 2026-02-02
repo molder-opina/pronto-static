@@ -12,7 +12,7 @@ import {
   validateTableCode,
   parseTableCode,
   deriveAreaCodeFromLabel,
-} from "../../shared/table-code";
+} from "@shared/domain";
 import { createIcons, icons } from "lucide/dist/umd/lucide.js";
 
 function setupGlobalErrorHandlers(): void {

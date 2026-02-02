@@ -181,7 +181,7 @@ class MenuManager {
 
         // Check if user has permission to edit products (not just if form exists)
         const employeeRole = window.APP_DATA?.employee_role || '';
-        const canEditProducts = ['super_admin', 'admin_roles', 'content_manager', 'chef'].includes(employeeRole);
+        const canEditProducts = ['super_admin', 'admin', 'chef'].includes(employeeRole);
         this.allowProductEdits = canEditProducts && Boolean(document.getElementById('product-form'));
         this.quickEditBtn = document.getElementById('edit-product-btn') as HTMLButtonElement | null;
         this.quickToggleBtn = document.getElementById('mark-available-btn') as HTMLButtonElement | null;

@@ -29,7 +29,6 @@ function getCurrentScope(): string | null {
  */
 export function checkAuthAndRedirect(response: Response): boolean {
   if (response.status === 401) {
-    console.warn('[AUTH] Sesión inválida detectada (401), redirigiendo al login...');
     if (typeof window.showToast === 'function') {
       window.showToast('Tu sesión ha expirado. Por favor inicia sesión nuevamente.', 'warning');
     }
@@ -40,9 +39,7 @@ export function checkAuthAndRedirect(response: Response): boolean {
   }
 
   if (response.status === 403) {
-    console.warn('[AUTH] Permisos insuficientes (403).');
     // Redirigir a pantalla de error de autorización
-    // Intentar leer header de mensaje si existe, sino genérico
     const reason = 'El usuario firmado no tiene permiso para acceder a este recurso.';
     window.location.href = `/authorization-error?code=403&message=${encodeURIComponent(reason)}&from=${encodeURIComponent(window.location.pathname)}`;
     return false;
@@ -102,12 +99,10 @@ export async function requestJSON<TResponse = unknown, TBody = unknown>(
     credentials: 'same-origin',
   });
 
-  let data: any = {};
+  let data: unknown = {};
   try {
     data = await response.json();
-  } catch (e) {
-    // Si falla el parseo de JSON, intentar obtener el texto de respuesta
-    console.error('[HTTP] JSON parse failed for response:', e);
+  } catch {
     data = {};
   }
 
@@ -122,5 +117,5 @@ export async function requestJSON<TResponse = unknown, TBody = unknown>(
     throw new Error(message);
   }
 
-  return data;
+  return data as TResponse;
 }

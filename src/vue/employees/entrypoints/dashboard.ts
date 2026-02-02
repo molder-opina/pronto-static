@@ -72,15 +72,120 @@ initEmployeeEvents();
 import { createApp } from 'vue';
 // @ts-expect-error Vue component import
 import EmployeesManager from '../components/EmployeesManager.vue';
+// @ts-expect-error Vue component import
+import FeedbackDashboard from '../components/FeedbackDashboard.vue';
+// @ts-expect-error Vue component import
+import ReportsManager from '../components/ReportsManager.vue';
+// @ts-expect-error Vue component import
+import BusinessConfig from '../components/BusinessConfig.vue';
+// @ts-expect-error Vue component import
+import RolesManager from '../components/RolesManager.vue';
+// @ts-expect-error Vue component import
+import ClosedSessionsManager from '../components/ClosedSessionsManager.vue';
+// @ts-expect-error Vue component import
+import PaymentFlow from '../components/PaymentFlow.vue';
+// @ts-expect-error Vue component import
+import NotificationToast from '../../shared/components/NotificationToast.vue';
+// @ts-expect-error Vue component import
+import NotificationCenter from '../../shared/components/NotificationCenter.vue';
+// @ts-expect-error Vue component import
+import ShortcutsManager from '../components/ShortcutsManager.vue';
 
 const employeesRoot = document.getElementById('employees-table');
 if (employeesRoot) {
     console.log('Mounting Vue EmployeesManager...');
-    // Replace legacy container content
     const appContainer = document.createElement('div');
     employeesRoot.innerHTML = '';
     employeesRoot.appendChild(appContainer);
-
-    // Mount Vue App
     createApp(EmployeesManager).mount(appContainer);
 }
+
+const feedbackRoot = document.getElementById('feedback-dashboard');
+if (feedbackRoot) {
+    console.log('Mounting Vue FeedbackDashboard...');
+    const appContainer = document.createElement('div');
+    feedbackRoot.innerHTML = '';
+    feedbackRoot.appendChild(appContainer);
+    createApp(FeedbackDashboard).mount(appContainer);
+}
+
+const reportsRoot = document.getElementById('reports-section');
+if (reportsRoot) {
+    console.log('Mounting Vue ReportsManager...');
+    const appContainer = document.createElement('div');
+    appContainer.className = 'reports-container';
+    reportsRoot.innerHTML = '';
+    reportsRoot.appendChild(appContainer);
+    createApp(ReportsManager).mount(appContainer);
+}
+
+const businessConfigRoot = document.getElementById('business-config-section');
+if (businessConfigRoot) {
+    console.log('Mounting Vue BusinessConfig...');
+    const appContainer = document.createElement('div');
+    appContainer.className = 'business-config-container';
+    businessConfigRoot.innerHTML = '';
+    businessConfigRoot.appendChild(appContainer);
+    createApp(BusinessConfig).mount(appContainer);
+}
+
+const rolesManagerRoot = document.getElementById('roles-manager-section');
+if (rolesManagerRoot) {
+    console.log('Mounting Vue RolesManager...');
+    const appContainer = document.createElement('div');
+    appContainer.className = 'roles-manager-container';
+    rolesManagerRoot.innerHTML = '';
+    rolesManagerRoot.appendChild(appContainer);
+    createApp(RolesManager).mount(appContainer);
+}
+
+const closedSessionsRoot = document.getElementById('closed-sessions-section');
+if (closedSessionsRoot) {
+    console.log('Mounting Vue ClosedSessionsManager...');
+    const appContainer = document.createElement('div');
+    appContainer.className = 'closed-sessions-container';
+    closedSessionsRoot.innerHTML = '';
+    closedSessionsRoot.appendChild(appContainer);
+    createApp(ClosedSessionsManager).mount(appContainer);
+}
+
+const paymentFlowRoot = document.getElementById('payment-flow-root');
+if (paymentFlowRoot) {
+    console.log('Mounting Vue PaymentFlow...');
+    const appContainer = document.createElement('div');
+    appContainer.className = 'payment-flow-root';
+    paymentFlowRoot.innerHTML = '';
+    paymentFlowRoot.appendChild(appContainer);
+    createApp(PaymentFlow).mount(appContainer);
+}
+
+const notificationRoot = document.getElementById('notification-toast-root');
+if (notificationRoot) {
+    console.log('Mounting Vue NotificationToast...');
+    const appContainer = document.createElement('div');
+    appContainer.className = 'notification-toast-root';
+    notificationRoot.innerHTML = '';
+    notificationRoot.appendChild(appContainer);
+    createApp(NotificationToast).mount(appContainer);
+}
+
+const notificationCenterRoot = document.getElementById('notification-center-root');
+if (notificationCenterRoot) {
+    console.log('Mounting Vue NotificationCenter...');
+    const appContainer = document.createElement('div');
+    appContainer.className = 'notification-center-root';
+    notificationCenterRoot.innerHTML = '';
+    notificationCenterRoot.appendChild(appContainer);
+    createApp(NotificationCenter).mount(appContainer);
+}
+
+const shortcutsManagerRoot = document.getElementById('shortcuts-manager-section');
+if (shortcutsManagerRoot) {
+    console.log('Mounting Vue ShortcutsManager...');
+    const appContainer = document.createElement('div');
+    appContainer.className = 'shortcuts-manager-container';
+    shortcutsManagerRoot.innerHTML = '';
+    shortcutsManagerRoot.appendChild(appContainer);
+    createApp(ShortcutsManager).mount(appContainer);
+}
+

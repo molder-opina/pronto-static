@@ -14,6 +14,17 @@ export interface RoleCapabilities {
     canViewActive: boolean;
 }
 
+interface BackendCapabilities {
+    payments?: { process?: boolean; view?: boolean };
+    orders?: { cancel?: boolean; modify?: boolean; view?: boolean };
+    tables?: { edit?: boolean };
+    kitchen?: { start?: boolean; complete?: boolean };
+}
+
+interface BackendData {
+    capabilities?: BackendCapabilities;
+}
+
 interface RoleTheme {
     primary: string;
     hover: string;
@@ -100,7 +111,7 @@ const ROLE_THEMES: Record<RoleKey, RoleTheme> = {
 function mapToRoleKey(role?: string | null): RoleKey {
     if (!role) return 'guest';
     const normalized = role.toLowerCase();
-    if (['super_admin', 'admin_roles', 'manager', 'admin'].includes(normalized)) return 'admin';
+    if (['super_admin', 'admin', 'system'].includes(normalized)) return 'admin';
     if (['chef', 'cook'].includes(normalized)) return 'chef';
     if (normalized === 'cashier') return 'cashier';
     if (normalized === 'waiter') return 'waiter';
@@ -131,7 +142,7 @@ export function getRoleTheme(role?: string | null): RoleTheme {
     return ROLE_THEMES[key];
 }
 
-export function normalizeBackendCapabilities(backendData: any): RoleCapabilities | null {
+export function normalizeBackendCapabilities(backendData: BackendData): RoleCapabilities | null {
     if (!backendData || !backendData.capabilities) {
         return null;
     }

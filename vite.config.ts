@@ -47,6 +47,9 @@ export default defineConfig({
   publicDir: false,
   resolve: {
     alias: {
+      "@shared": path.resolve(__dirname, "src/vue/shared"),
+      "@clients": path.resolve(__dirname, "src/vue/clients"),
+      "@employees": path.resolve(__dirname, "src/vue/employees"),
       "lucide/dist/umd/lucide.js": path.resolve(
         __dirname,
         "node_modules/lucide/dist/umd/lucide.js",
@@ -92,6 +95,11 @@ export default defineConfig({
         target: process.env.PRONTO_STATIC_CONTAINER_HOST || "http://localhost:9088",
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/static/, "/assets"),
+      },
+      "/assets": {
+        target: process.env.PRONTO_STATIC_CONTAINER_HOST || "http://localhost:9088",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/assets/, "/assets"),
       },
     },
   },

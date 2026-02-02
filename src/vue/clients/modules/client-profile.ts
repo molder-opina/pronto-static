@@ -284,9 +284,9 @@ async function handleLoginSubmit(form: HTMLFormElement): Promise<void> {
       updateHeaderAvatar(user);
       closeProfileModal();
     }, 1000);
-  } catch (error: any) {
+  } catch (error: unknown) {
     feedback.className = 'form-feedback error';
-    feedback.textContent = error.message || 'Error al iniciar sesión';
+    feedback.textContent = error instanceof Error ? error.message : 'Error al iniciar sesión';
   } finally {
     submitBtn.disabled = false;
   }
@@ -348,9 +348,9 @@ async function handleRegisterSubmit(form: HTMLFormElement): Promise<void> {
       showLoggedInView(user);
       updateHeaderAvatar(user);
     }, 800);
-  } catch (error: any) {
+  } catch (error: unknown) {
     feedback.className = 'form-feedback error';
-    feedback.textContent = error.message || 'Error al registrarse';
+    feedback.textContent = error instanceof Error ? error.message : 'Error al registrarse';
   } finally {
     submitBtn.disabled = false;
   }
@@ -384,7 +384,8 @@ function updateHeaderAvatar(user: ProntoUser | null): void {
     headerAvatar.src = user.avatar;
   } else {
     // Default avatar
-    const staticHost = (import.meta as any).env.VITE_STATIC_HOST || 'http://localhost:9088';
+    // Use the global config for static host, falling back to 9088 if missing
+    const staticHost = window.APP_CONFIG?.static_host_url || 'http://localhost:9088';
     headerAvatar.src = `${staticHost}/assets/images/default-avatar.png`;
   }
 }

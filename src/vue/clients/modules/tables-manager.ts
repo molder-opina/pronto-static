@@ -2,7 +2,7 @@ import {
   buildTableCode,
   deriveAreaCodeFromLabel,
   parseTableCode,
-} from "../../shared/table-code";
+} from "@shared/domain";
 import { normalizeRole } from "./role-context";
 
 interface TableRecord {

@@ -24,7 +24,7 @@ type CanonicalWorkflowStatus =
 
 type WorkflowStatus = LegacyWorkflowStatus | CanonicalWorkflowStatus;
 
-type CheckoutState = 'awaiting_tip' | 'awaiting_payment' | 'open' | 'paid' | string;
+type CheckoutState = 'awaiting_tip' | 'awaiting_payment' | 'open' | 'paid';
 
 interface SessionInfo {
   id: number;
@@ -59,7 +59,7 @@ interface ApiOrderResponse extends OrderData {
 interface ActionDescriptor {
   label: string;
   endpoint: (id: number) => string;
-  method?: string;
+  method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
   className?: string;
   capability?: keyof RoleCapabilities;
 }
@@ -120,9 +120,9 @@ const TIMELINE_STEPS: LegacyWorkflowStatus[] = [
 
 const CHECKOUT_STATES: CheckoutState[] = ['awaiting_tip', 'awaiting_payment'];
 const ROLE_CAPABILITIES: RoleCapabilities =
-  typeof window !== 'undefined' && window.APP_DATA?.role_capabilities
-    ? (window.APP_DATA.role_capabilities as RoleCapabilities)
-    : getCapabilitiesForRole(window.APP_DATA?.employee_role);
+  typeof window !== 'undefined' && (window.APP_DATA as any)?.role_capabilities
+    ? ((window.APP_DATA as any).role_capabilities as RoleCapabilities)
+    : getCapabilitiesForRole((window.APP_DATA as any)?.employee_role);
 
 const GENERIC_CUSTOMER_NAMES = new Set([
   'INVITADO',
@@ -153,12 +153,6 @@ function resolveCustomerDisplayName(customer?: CustomerInfo): string {
   return name || email;
 }
 
-function parseNumber(value?: string | null): number | null {
-  if (!value) return null;
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : null;
-}
-
 function normalizeWorkflowStatus(
   status: WorkflowStatus | string,
   legacy?: LegacyWorkflowStatus
@@ -170,14 +164,28 @@ function normalizeWorkflowStatus(
   return status as LegacyWorkflowStatus;
 }
 
-function resolveStatusLabel(order: OrderData, normalizedStatus: LegacyWorkflowStatus): string {
-  const display = order.status_display?.trim();
-  if (display) return display;
-  return STATUS_LABELS[normalizedStatus] || normalizedStatus;
+function updateViewDataset(
+  element: HTMLElement,
+  order: OrderData
+): void {
+  const displayName = resolveCustomerDisplayName(order.customer);
+  const normalizedStatus = normalizeWorkflowStatus(
+    order.workflow_status,
+    order.workflow_status_legacy
+  );
+  element.dataset.status = normalizedStatus;
+  if (order.status_display) {
+    element.dataset.statusDisplay = order.status_display;
+  }
+  element.dataset.sessionStatus = order.session?.status || '';
+  element.dataset.tableNumber = order.session?.table_number || '';
+  element.dataset.customerName = displayName;
+  element.dataset.customerEmail = normalizeCustomerEmail(order.customer?.email);
+  element.dataset.waiterName = order.waiter_name || '';
+  element.dataset.waiterNotes = order.waiter_notes || '';
 }
 
-function hydrateOrderFromCard(card: HTMLElement): OrderData {
-  const dataset = card.dataset;
+function hydrateOrder(dataset: DOMStringMap): OrderData {
   return {
     id: Number(dataset.orderId),
     session_id: Number(dataset.sessionId),
@@ -199,22 +207,22 @@ function hydrateOrderFromCard(card: HTMLElement): OrderData {
   };
 }
 
+function resolveStatusLabel(order: OrderData, normalizedStatus: LegacyWorkflowStatus): string {
+  const display = order.status_display?.trim();
+  if (display) return display;
+  return STATUS_LABELS[normalizedStatus] || normalizedStatus;
+}
+
+function hydrateOrderFromCard(card: HTMLElement): OrderData {
+  return hydrateOrder(card.dataset);
+}
+
+function hydrateOrderFromTableRow(row: HTMLElement): OrderData {
+  return hydrateOrder(row.dataset);
+}
+
 function updateCardDataset(card: HTMLElement, order: OrderData): void {
-  const displayName = resolveCustomerDisplayName(order.customer);
-  const normalizedStatus = normalizeWorkflowStatus(
-    order.workflow_status,
-    order.workflow_status_legacy
-  );
-  card.dataset.status = normalizedStatus;
-  if (order.status_display) {
-    card.dataset.statusDisplay = order.status_display;
-  }
-  card.dataset.sessionStatus = order.session?.status || '';
-  card.dataset.tableNumber = order.session?.table_number || '';
-  card.dataset.customerName = displayName;
-  card.dataset.customerEmail = normalizeCustomerEmail(order.customer?.email);
-  card.dataset.waiterName = order.waiter_name || '';
-  card.dataset.waiterNotes = order.waiter_notes || '';
+  updateViewDataset(card, order);
 }
 
 function renderStatusBadge(card: HTMLElement, order: OrderData): void {
@@ -346,7 +354,7 @@ async function handleActionButton(
   const endpoint = button.dataset.endpoint;
   if (!endpoint) return;
   const method = button.dataset.method || 'POST';
-  const employeeId = window.APP_DATA?.employee_id;
+  const employeeId = (window.APP_DATA as any)?.employee_id;
 
   // No validar en el DOM, confiar completamente en el backend
   button.disabled = true;
@@ -478,29 +486,6 @@ function setupViewToggle(root: HTMLElement, list: HTMLElement): void {
   });
 }
 
-function hydrateOrderFromTableRow(row: HTMLElement): OrderData {
-  const dataset = row.dataset;
-  return {
-    id: Number(dataset.orderId),
-    session_id: Number(dataset.sessionId),
-    workflow_status: (dataset.status || 'requested') as WorkflowStatus,
-    workflow_status_legacy: dataset.status ? (dataset.status as LegacyWorkflowStatus) : undefined,
-    status_display: dataset.statusDisplay || undefined,
-    session: {
-      id: Number(dataset.sessionId),
-      status: (dataset.sessionStatus || 'open') as CheckoutState,
-      table_number: dataset.tableNumber || null,
-      notes: dataset.notes || null,
-    },
-    customer: {
-      name: dataset.customerName || '',
-      email: normalizeCustomerEmail(dataset.customerEmail),
-    },
-    waiter_name: dataset.waiterName || '',
-    waiter_notes: dataset.waiterNotes || '',
-  };
-}
-
 function renderTableRow(row: HTMLElement, order: OrderData): void {
   const actionsCell = row.querySelector<HTMLElement>('.actions-cell');
   if (actionsCell) {
@@ -523,21 +508,7 @@ function renderTableRow(row: HTMLElement, order: OrderData): void {
 }
 
 function updateTableRowDataset(row: HTMLElement, order: OrderData): void {
-  const displayName = resolveCustomerDisplayName(order.customer);
-  const normalizedStatus = normalizeWorkflowStatus(
-    order.workflow_status,
-    order.workflow_status_legacy
-  );
-  row.dataset.status = normalizedStatus;
-  if (order.status_display) {
-    row.dataset.statusDisplay = order.status_display;
-  }
-  row.dataset.sessionStatus = order.session?.status || '';
-  row.dataset.tableNumber = order.session?.table_number || '';
-  row.dataset.customerName = displayName;
-  row.dataset.customerEmail = normalizeCustomerEmail(order.customer?.email);
-  row.dataset.waiterName = order.waiter_name || '';
-  row.dataset.waiterNotes = order.waiter_notes || '';
+  updateViewDataset(row, order);
 }
 
 function removeTableRow(row: HTMLElement): void {
@@ -556,7 +527,7 @@ async function handleTableActionButton(
   const endpoint = button.dataset.endpoint;
   if (!endpoint) return;
   const method = button.dataset.method || 'POST';
-  const employeeId = window.APP_DATA?.employee_id;
+  const employeeId = (window.APP_DATA as any)?.employee_id;
 
   // No validar en el DOM, confiar completamente en el backend
   button.disabled = true;

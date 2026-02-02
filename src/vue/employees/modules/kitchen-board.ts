@@ -196,7 +196,7 @@ class KitchenBoard {
     // This is a defensive fallback in case backend capabilities fail to load
     const isChefRole =
       employeeRole &&
-      ['chef', 'cook', 'admin', 'admin_roles', 'super_admin'].includes(employeeRole.toLowerCase());
+      ['chef', 'cook', 'admin', 'admin', 'super_admin'].includes(employeeRole.toLowerCase());
     this.canAdvanceKitchen = Boolean(caps?.canAdvanceKitchen) || isChefRole;
 
     console.log('[KITCHEN] Permissions initialized:', {

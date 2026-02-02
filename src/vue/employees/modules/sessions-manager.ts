@@ -1,4 +1,4 @@
-import { formatCurrency, escapeHtml } from "../../shared/formatting";
+import { formatCurrency, escapeHtml } from "@shared/lib";
 
 import { getCapabilitiesForRole, type RoleCapabilities } from "./role-context";
 import { isValidEmailFormat, normalizeCustomerEmail } from "./email-utils";
@@ -415,7 +415,7 @@ class SessionsManager {
         "";
       const isCashier = normalizedRole === "cashier";
       const isAdmin =
-        normalizedRole === "super_admin" || normalizedRole === "admin_roles";
+        normalizedRole === "super_admin" || normalizedRole === "admin";
       const endpoint =
         isCashier || isAdmin
           ? "/api/sessions/closed"

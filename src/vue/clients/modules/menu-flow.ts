@@ -423,7 +423,7 @@ export class MenuFlow {
       </div>`));
   }
 
-  private getCategoryIcon(name: string): string {
+  getCategoryIcon(name: string): string {
     const lower = name.toLowerCase();
 
     // Default SVG properties

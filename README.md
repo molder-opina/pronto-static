@@ -6,22 +6,78 @@ Container nginx que sirve assets estáticos (CSS, JS, imágenes) compilados desd
 
 ```
 src/
-├── static_content/
-│   ├── Dockerfile          # Build: compila Vue → nginx
-│   ├── nginx.conf          # Configuración nginx
+├── static_content/           # Archivos estáticos (servidos por nginx)
+│   ├── Dockerfile            # Build: compila Vue → nginx
+│   ├── nginx.conf            # Configuración nginx
 │   ├── index.html
 │   ├── styles.css
-│   └── assets/             # Assets compilados
+│   └── assets/               # Assets compilados y recursos
 │       ├── css/
-│       │   ├── employees/
-│       │   └── clients/
-│       └── js/
-│           ├── employees/
-│           └── clients/
-└── vue/                    # Fuentes Vue
-    ├── employees/
-    └── clients/
+│       │   ├── shared/       # ✅ CSS compartido (base, components, utilities)
+│       │   │   ├── base.css
+│       │   │   ├── components.css
+│       │   │   └── utilities.css
+│       │   ├── employees/    # CSS específico de employees
+│       │   └── clients/      # CSS específico de clients
+│       ├── js/               # JavaScript compilado (output de Vite)
+│       │   ├── employees/     # Output de vite build --target employees
+│       │   └── clients/      # Output de vite build --target clients
+│       ├── pronto/            # ✅ Branding y assets del sistema
+│       │   ├── branding/     # Branding por restaurante
+│       │   ├── icons/        # Iconos del sistema
+│       │   └── shared/       # Imágenes compartidas
+│       └── fonts/            # Fuentes web
+│
+└── vue/                      # Fuentes TypeScript/Vue
+    ├── shared/               # ✅ Código compartido (TypeScript)
+    │   ├── lib/              # Utilidades (formatting, validators, constants)
+    │   ├── domain/           # Lógica de dominio (table-code, order-types)
+    │   └── types/            # TypeScript types compartidos
+    ├── employees/            # App Vue Employees
+    │   ├── components/
+    │   ├── modules/
+    │   └── entrypoints/
+    └── clients/              # App Vue Clients
+        ├── components/
+        ├── modules/
+        └── entrypoints/
 ```
+
+## Código Compartido
+
+### TypeScript/Vue Shared (`src/vue/shared/`)
+
+Utilidades y lógica compartida entre employees y clients:
+
+```typescript
+// Importar en cualquier app
+import { formatCurrency, formatDateTime } from '@shared/lib';
+import { buildTableCode, parseTableCode } from '@shared/domain';
+import { OrderStatus, TableType } from '@shared/types';
+```
+
+**Contenido:**
+- `lib/` - Utilidades generales (formatCurrency, validators, constants)
+- `domain/` - Lógica de dominio (table-code, order-types)
+- `types/` - TypeScript types compartidos
+
+### CSS Shared (`assets/css/shared/`)
+
+Estilos CSS compartidos y reutilizables:
+
+```html
+<!-- Importar en tu HTML -->
+<link rel="stylesheet" href="/assets/css/shared/base.css">
+<link rel="stylesheet" href="/assets/css/shared/components.css">
+<link rel="stylesheet" href="/assets/css/shared/utilities.css">
+```
+
+**Contenido:**
+- `base.css` - Variables globales, reset, estilos base
+- `components.css` - Componentes reutilizables (botones, cards, modales)
+- `utilities.css` - Clases de utilidad (flexbox, spacing, colors)
+
+Para más información, ver [CSS Shared README](./src/static_content/assets/css/shared/README.md).
 
 ## Desarrollo
 

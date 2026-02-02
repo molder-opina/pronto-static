@@ -3,6 +3,13 @@
 
 import { getSessionId } from './session-manager';
 
+// Helper function for error handling
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'string') return error;
+  return 'Error desconocido';
+}
+
 // Simple view name type
 export type ViewName = 'menu' | 'orders' | 'details';
 
@@ -645,8 +652,8 @@ async function requestOrderCheck(orderId: number): Promise<void> {
 
     // Refresh active orders to show updated status
     await refreshActiveOrders();
-  } catch (error: any) {
-    notify?.(`Error: ${error.message}`, 'error');
+  } catch (error) {
+    notify?.(`Error: ${getErrorMessage(error)}`, 'error');
   }
 }
 
@@ -706,8 +713,8 @@ async function requestCheck(): Promise<void> {
     }
     const trackerTab = document.getElementById('tab-tracker');
     trackerTab?.classList.remove('active');
-  } catch (error: any) {
-    notify?.(`Error: ${error.message}`, 'error');
+  } catch (error) {
+    notify?.(`Error: ${getErrorMessage(error)}`, 'error');
     if (tabButton) {
       tabButton.classList.remove('active');
     }
@@ -1853,9 +1860,10 @@ async function downloadOrderPDF(sessionId: number): Promise<void> {
     document.body.removeChild(a);
 
     notify?.('PDF descargado exitosamente', 'success');
-  } catch (error: any) {
-    console.error('Error downloading PDF:', error);
-    notify?.(`Error al descargar PDF: ${error.message}`, 'error');
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Error desconocido';
+    console.error('Error downloading PDF:', message);
+    notify?.(`Error al descargar PDF: ${message}`, 'error');
   }
 }
 
@@ -1880,9 +1888,10 @@ async function markOrderReceived(orderId: number): Promise<void> {
 
     // Refresh orders to show updated status
     await refreshActiveOrders();
-  } catch (error: any) {
-    console.error('Error marking order as received:', error);
-    notify?.(`Error: ${error.message}`, 'error');
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Error desconocido';
+    console.error('Error marking order as received:', message);
+    notify?.(`Error: ${message}`, 'error');
   }
 }
 

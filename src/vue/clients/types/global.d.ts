@@ -1,5 +1,65 @@
 export { };
 
+interface ImportMetaEnv {
+    readonly DEV: boolean;
+    readonly VITE_API_URL?: string;
+    readonly VITE_STATIC_HOST_URL?: string;
+}
+
+interface ImportMeta {
+    readonly env: ImportMetaEnv;
+}
+
+interface CartItem {
+  id: number;
+  itemId: number;
+  name: string;
+  price: number;
+  quantity: number;
+  modifiers?: Array<{
+    id: number;
+    name: string;
+    price: number;
+    quantity: number;
+  }>;
+  notes?: string;
+}
+
+interface ThankYouData {
+  orderId: number;
+  orderNumber?: string;
+  totalAmount: number;
+  currency: string;
+  items?: CartItem[];
+  tableNumber?: string;
+  customerName?: string;
+  timestamp: string;
+}
+
+interface StripeInstance {
+  confirmCardPayment: (clientSecret: string, data: {
+    payment_method: {
+      card: {
+        elements: unknown;
+      };
+      billing_details?: {
+        name?: string;
+        email?: string;
+      };
+    };
+  }) => Promise<{
+    paymentIntent?: {
+      status: string;
+    };
+    error?: {
+      message: string;
+    };
+  }>;
+  elements: () => {
+    create: (type: string, options?: unknown) => unknown;
+  };
+}
+
 declare global {
   interface Window {
     APP_CONFIG: {
@@ -43,13 +103,17 @@ declare global {
         }
       ) => void;
     };
-    THANK_YOU_DATA?: any;
+    THANK_YOU_DATA?: ThankYouData;
     NotificationManager?: new (url: string) => {
       connect: () => void;
-      on: (event: string, callback: (payload: any) => void) => void;
+      on: (event: string, callback: (payload: unknown) => void) => void;
     };
-    Stripe?: (publishableKey: string) => any;
-    ThankYouPage?: any;
+    Stripe?: (publishableKey: string) => StripeInstance;
+    ThankYouPage?: {
+      orderId: number;
+      total: number;
+      currency: string;
+    };
     callWaiter?: () => void;
     formatCurrency?: (value: number, options?: { locale?: string; currency?: string }) => string;
     getSessionId?: () => number | null;
@@ -88,9 +152,8 @@ declare global {
       ) => { areaCode: string; tableNumber: number; code: string } | null;
       deriveAreaCodeFromLabel: (label?: string | null, fallback?: string) => string;
     };
-    // Cart persistence functions
-    getCartItems?: () => any[];
-    addToCart?: (item: any) => void;
+    getCartItems?: () => CartItem[];
+    addToCart?: (item: CartItem) => void;
     clearCart?: () => void;
     getCartCount?: () => number;
     getCartTotal?: () => number;

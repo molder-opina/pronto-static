@@ -477,7 +477,7 @@ class EmployeeEventsManager {
 
     private handleSupervisorCallNotification(data: any): void {
         const role = window.APP_DATA?.employee_role || 'staff';
-        const allowed = ['super_admin', 'admin_roles', 'supervisor'];
+        const allowed = ['super_admin', 'admin', 'supervisor'];
         if (!allowed.includes(role)) return;
         let message = `${data.waiter_name || 'Un mesero'} solicita ayuda`;
         if (data.table_number) message += ` (Mesa ${data.table_number})`;

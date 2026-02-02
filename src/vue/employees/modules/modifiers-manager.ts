@@ -1,4 +1,4 @@
-import { formatCurrency } from "../../shared/formatting";
+import { formatCurrency } from "@shared/lib";
 
 interface ModifierOption {
   id: number;

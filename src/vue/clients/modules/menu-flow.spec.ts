@@ -70,20 +70,17 @@ describe('MenuFlow', () => {
   });
 
   it('getCategoryIcon should return SVG for "Bebidas"', () => {
-    // @ts-ignore
     const icon = menuFlow.getCategoryIcon('Bebidas Frías');
     expect(icon).toContain('<svg');
     expect(icon).toContain('path');
   });
 
   it('getCategoryIcon should return SVG for "Hamburguesas"', () => {
-    // @ts-ignore
     const icon = menuFlow.getCategoryIcon('Hamburguesas');
     expect(icon).toContain('<svg');
   });
 
   it('getCategoryIcon should return default SVG for unknown category', () => {
-    // @ts-ignore
     const icon = menuFlow.getCategoryIcon('Unknown Category');
     expect(icon).toContain('<svg');
   });

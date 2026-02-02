@@ -5,6 +5,13 @@
 
 import { requestJSON } from '../core/http';
 
+// Helper function for error handling
+function getErrorMessage(error: unknown): string {
+    if (error instanceof Error) return error.message;
+    if (typeof error === 'string') return error;
+    return 'Error desconocido';
+}
+
 interface Table {
     id: number;
     table_number: string;
@@ -553,8 +560,8 @@ export class TableAssignmentManager {
                 this.showConflictModal(conflictsResponse.conflicts);
                 return;
             }
-        } catch (error: any) {
-            console.error('[TABLE_ASSIGNMENT] Error checking conflicts:', error);
+        } catch (error) {
+            console.error('[TABLE_ASSIGNMENT] Error checking conflicts:', getErrorMessage(error));
             // Continue with assignment if check fails
         }
 
@@ -607,9 +614,9 @@ export class TableAssignmentManager {
                 console.log('[TABLE_ASSIGNMENT] Refreshing tables list after assignment');
                 await tablesManager.refresh();
             }
-        } catch (error: any) {
-            console.error('[TABLE_ASSIGNMENT] Error assigning tables:', error);
-            this.showToast(error.message || 'Error al asignar mesas', 'danger');
+        } catch (error) {
+            console.error('[TABLE_ASSIGNMENT] Error assigning tables:', getErrorMessage(error));
+            this.showToast(getErrorMessage(error) || 'Error al asignar mesas', 'danger');
         }
     }
 
@@ -645,9 +652,9 @@ export class TableAssignmentManager {
                 console.log('[TABLE_ASSIGNMENT] Refreshing tables list after unassignment');
                 await tablesManager.refresh();
             }
-        } catch (error: any) {
-            console.error('[TABLE_ASSIGNMENT] Error unassigning table:', error);
-            this.showToast(error.message || 'Error al desasignar mesa', 'danger');
+        } catch (error) {
+            console.error('[TABLE_ASSIGNMENT] Error unassigning table:', getErrorMessage(error));
+            this.showToast(getErrorMessage(error) || 'Error al desasignar mesa', 'danger');
         }
     }
 
@@ -741,9 +748,9 @@ export class TableAssignmentManager {
 
             // Refresh assigned tables display
             this.refreshAssignedTablesDisplay();
-        } catch (error: any) {
-            console.error('[TABLE_ASSIGNMENT] Error accepting transfer:', error);
-            this.showToast(error.message || 'Error al aceptar transferencia', 'danger');
+        } catch (error) {
+            console.error('[TABLE_ASSIGNMENT] Error accepting transfer:', getErrorMessage(error));
+            this.showToast(getErrorMessage(error) || 'Error al aceptar transferencia', 'danger');
         }
     }
 
@@ -755,9 +762,9 @@ export class TableAssignmentManager {
 
             this.showToast('Transferencia rechazada', 'info');
             this.closeTransferModal();
-        } catch (error: any) {
-            console.error('[TABLE_ASSIGNMENT] Error rejecting transfer:', error);
-            this.showToast(error.message || 'Error al rechazar transferencia', 'danger');
+        } catch (error) {
+            console.error('[TABLE_ASSIGNMENT] Error rejecting transfer:', getErrorMessage(error));
+            this.showToast(getErrorMessage(error) || 'Error al rechazar transferencia', 'danger');
         }
     }
 

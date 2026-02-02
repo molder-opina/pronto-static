@@ -19,6 +19,13 @@ interface UserPermissions {
   permissions: string[];
 }
 
+// Helper function for error handling
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'string') return error;
+  return 'Error desconocido';
+}
+
 // State
 const employees = ref<Employee[]>([]);
 const roles = ref<Role[]>([]);
@@ -64,7 +71,7 @@ const loadRoles = async () => {
       { value: 'chef', label: 'Cocinero' },
       { value: 'cashier', label: 'Cajero' },
       { value: 'supervisor', label: 'Supervisor' },
-      { value: 'admin_roles', label: 'Administrador' },
+      { value: 'admin', label: 'Administrador' },
     ];
   }
 };
@@ -90,8 +97,8 @@ const loadEmployees = async () => {
     } else {
       employees.value = [];
     }
-  } catch (e: any) {
-    error.value = e.message;
+  } catch (e) {
+    error.value = getErrorMessage(e);
   } finally {
     isLoading.value = false;
   }
@@ -104,7 +111,7 @@ const getRoleLabel = (roleVal: string) => {
 
 const getRoleBadgeClass = (role: string) => {
   const map: Record<string, string> = {
-    admin_roles: 'bg-purple-100 text-purple-800',
+    admin: 'bg-purple-100 text-purple-800',
     supervisor: 'bg-blue-100 text-blue-800',
     chef: 'bg-orange-100 text-orange-800',
     waiter: 'bg-green-100 text-green-800',
@@ -152,8 +159,8 @@ const saveEmployee = async () => {
     showModal.value = false;
     loadEmployees();
     // Here you could add a toast library call like toast.success(...)
-  } catch (e: any) {
-    alert(e.message); // Simple fallback
+  } catch (e) {
+    alert(getErrorMessage(e)); // Simple fallback
   } finally {
     isSaving.value = false;
   }

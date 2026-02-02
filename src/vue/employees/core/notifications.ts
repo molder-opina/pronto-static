@@ -1,7 +1,15 @@
+interface NotificationData {
+    type?: string;
+    event?: string;
+    priority?: string;
+    title?: string;
+    message?: string;
+}
+
 export class NotificationManager {
     private streamUrl: string;
     private eventSource: EventSource | null = null;
-    private eventListeners: Record<string, Array<(data: any) => void>> = {};
+    private eventListeners: Record<string, Array<(data: NotificationData) => void>> = {};
     private reconnectDelay = 3000;
     private maxReconnectDelay = 30000;
     private reconnectAttempts = 0;
@@ -82,16 +90,17 @@ export class NotificationManager {
         window.setTimeout(() => this.connect(), delay);
     }
 
-    private handleEvent(data: any): void {
-        const eventType = data.type || data.event || 'notification';
-        this.emit(eventType, data);
-        this.emit('all', data);
-        if (data.message) {
-            this.showUINotification(data);
+    private handleEvent(data: unknown): void {
+        const notificationData = data as NotificationData;
+        const eventType = notificationData.type || notificationData.event || 'notification';
+        this.emit(eventType, notificationData);
+        this.emit('all', notificationData);
+        if (notificationData.message) {
+            this.showUINotification(notificationData);
         }
     }
 
-    private emit(eventType: string, data: any): void {
+    private emit(eventType: string, data: NotificationData): void {
         const listeners = this.eventListeners[eventType];
         if (!listeners || listeners.length === 0) return;
         listeners.forEach((callback) => {
@@ -103,7 +112,7 @@ export class NotificationManager {
         });
     }
 
-    private showUINotification(data: any): void {
+    private showUINotification(data: NotificationData): void {
         const container = document.getElementById('notification-container');
         if (!container) {
             return;
@@ -122,7 +131,7 @@ export class NotificationManager {
             warning: '⚠️',
             error: '❌'
         };
-        const icon = icons[data.type] || icons[notificationType] || '🔔';
+        const icon = icons[data.type as keyof typeof icons] || icons[notificationType] || '🔔';
         notification.innerHTML = `
             <div class="notification-icon">${icon}</div>
             <div class="notification-content">

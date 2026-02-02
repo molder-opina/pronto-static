@@ -201,11 +201,11 @@ function playWaiterBellSound(): void {
     audio.volume = 0.7;
 
     // Play the sound (catch errors silently in case autoplay is blocked)
-    audio.play().catch((error) => {
-      console.log('Audio playback blocked or failed:', error);
+    audio.play().catch(() => {
+      // Audio playback blocked or failed - silently ignore
     });
-  } catch (error) {
-    console.log('Error playing waiter bell sound:', error);
+  } catch {
+    // Error playing waiter bell sound - silently ignore
   }
 }
 
@@ -393,10 +393,9 @@ function regenerateAnonymousClientId(reason?: string): string {
       : `anon-${Date.now()}-${Math.random().toString(16).slice(2, 10)}`;
   try {
     localStorage.setItem(ANONYMOUS_CLIENT_ID_KEY, generated);
-  } catch (err) {
-    console.warn('[ClientBase] Error storing anonymous client id:', err);
+  } catch {
+    // Silently ignore storage errors
   }
-  console.log('[ClientBase] Regenerated anonymous client id', reason || '');
   return generated;
 }
 
