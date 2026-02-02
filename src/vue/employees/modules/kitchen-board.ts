@@ -1,6 +1,7 @@
 import { requestJSON } from '../core/http';
 import { getCapabilitiesForRole, normalizeBackendCapabilities } from './role-context';
 import { showToastGlobal } from '../core/toast';
+import { escapeHtml } from '@shared/lib/formatting';
 
 declare var window: Window &
   typeof globalThis & {
@@ -1368,12 +1369,6 @@ class KitchenBoard {
 }
 
 // ==================== HELPER FUNCTIONS ====================
-
-function escapeHtml(text: string): string {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
-}
 
 function createFragment(html: string): DocumentFragment {
   return document.createRange().createContextualFragment(html);

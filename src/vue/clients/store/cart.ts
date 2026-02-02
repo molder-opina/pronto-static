@@ -1,4 +1,4 @@
-import { reactive, computed, watch } from 'vue';
+import { reactive, watch } from 'vue';
 import { CartPersistence, type CartItem } from '../modules/cart-persistence';
 
 const persistence = CartPersistence.getInstance();
@@ -62,11 +62,11 @@ export const cartStore = reactive({
 
   // Computed-like getters
   get totalItems() {
-    return this.items.reduce((sum, item) => sum + item.quantity, 0);
+    return this.items.reduce((sum: number, item: CartItem) => sum + item.quantity, 0);
   },
 
   get totalPrice() {
-    return this.items.reduce((sum, item) => {
+    return this.items.reduce((sum: number, item: CartItem) => {
       return sum + (item.price + item.extrasTotal) * item.quantity;
     }, 0);
   },

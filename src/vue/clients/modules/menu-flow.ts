@@ -9,36 +9,7 @@ import { ModalManager, type MenuItem } from './modal-manager';
 import { OrderTracker } from './order-tracker';
 import { CheckoutHandler } from './checkout-handler';
 
-declare global {
-  interface Window {
-    toggleCart: () => void;
-    proceedToCheckout: () => void;
-    backToMenu: () => void;
-    openItemModal: (itemId: number) => void;
-    openProductModal: (itemId: number) => void;
-    closeItemModal: () => void;
-    adjustModalQuantity: (delta: number) => void;
-    addToCartFromModal: () => void;
-    quickAdd: (event: Event, itemId: number) => void;
-    updateCartItemQuantity: (index: number, delta: number) => void;
-    handleModifierChange: (
-      groupId: number,
-      modifierId: number,
-      maxSelection: number,
-      checked: boolean,
-      input?: HTMLInputElement | null,
-      isSingle?: boolean
-    ) => void;
-    requestCheckoutFromTracker: () => void;
-    cancelPendingOrder: () => void;
-    viewFullTracker: () => void;
-    showNotification?: (message: string, type: 'success' | 'error' | 'warning' | 'info') => void;
-    APP_SETTINGS?: any;
-    APP_CONFIG: any;
-    resetFilters: () => void;
-    switchView: (view: string) => void;
-  }
-}
+// Window extensions are defined in types/global.d.ts
 
 const DEFAULT_COUNTRY = '+52';
 const FILTER_STORAGE_KEY = 'pronto-menu-filters';

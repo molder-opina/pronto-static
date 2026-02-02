@@ -1,5 +1,7 @@
 import { bootstrapModule } from '../core/bootstrap';
+import { requestJSON } from '../core/http';
 import { isAnonymousSession, redirectAfterPayment } from './session-cleanup';
+import { showPostPaymentFeedbackModal } from './post-payment-feedback';
 
 interface ThankYouStatusMaps {
   classMap: Record<string, string>;
@@ -18,8 +20,10 @@ interface ThankYouOrder {
   id: number;
   status: string;
   workflow_status?: string;
+  workflow_status_legacy?: string;
   total_amount: number;
   items?: ThankYouOrderItem[];
+  created_at?: string;
 }
 
 interface ThankYouSession {
@@ -505,22 +509,7 @@ class ThankYouPage {
 declare global {
   interface Window {
     THANK_YOU_DATA?: ThankYouData;
-    __PRONTO_TS_THANK_YOU__?: boolean;
-    APP_CONFIG?: { currency_symbol: string };
-    APP_SETTINGS?: {
-      currency_locale?: string;
-      currency_code?: string;
-      checkout_prompt_duration_seconds?: number;
-      checkout_default_method?: string;
-    };
-    Stripe?: stripe.StripeStatic;
-    NotificationManager?: new (url: string) => {
-      connect: () => void;
-      on: (event: string, callback: (payload: any) => void) => void;
-    };
-    showNotification?: (message: string, type: 'success' | 'error' | 'warning' | 'info') => void;
-    formatCurrency?: (value: number, options: { locale: string; currency: string }) => string;
-    cancelPendingOrder?: () => void;
+    ThankYouPage?: ThankYouPage;
   }
 }
 

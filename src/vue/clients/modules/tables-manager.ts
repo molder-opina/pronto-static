@@ -3,7 +3,7 @@ import {
   deriveAreaCodeFromLabel,
   parseTableCode,
 } from "@shared/domain";
-import { normalizeRole } from "./role-context";
+import { normalizeRole } from "@shared/lib/role-context";
 
 interface TableRecord {
   id: number;

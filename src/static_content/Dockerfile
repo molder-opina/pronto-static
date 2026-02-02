@@ -6,6 +6,7 @@ COPY pronto-static/package*.json ./
 RUN npm install
 
 COPY pronto-static/vite.config.ts ./
+COPY pronto-static/tsconfig.json ./
 COPY pronto-static/src/vue ./src/vue
 COPY pronto-static/src/static_content/assets ./src/static_content/assets
 

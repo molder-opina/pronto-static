@@ -10,6 +10,11 @@ interface ImportMeta {
     readonly env: ImportMetaEnv;
 }
 
+declare module 'lucide/dist/umd/lucide.js' {
+    export function createIcons(options?: { attributes?: string; nameAttr?: string }): void;
+    export const icons: Record<string, any>;
+}
+
 declare global {
     type AppRoleCapabilities = {
         canCharge: boolean;
@@ -44,6 +49,8 @@ declare global {
             normalized_role?: string;
         };
         SESSIONS_STATE?: Record<number, { id: number; status: string }>;
+        REALTIME_EVENTS_ENDPOINT?: string;
+        REALTIME_POLL_INTERVAL_MS?: number;
         showToast?: (message: string, type?: 'info' | 'success' | 'warning' | 'error') => void;
         __PRONTO_TS_ORDERS_BOARD__?: boolean;
         __PRONTO_TS_WAITER__?: boolean;
@@ -88,8 +95,27 @@ declare global {
             setState?: (state: string) => void;
             setCount?: (count: number) => void;
         };
-        io?: (...args: any[]) => any;
-        NotificationManager?: new (streamUrl: string) => any;
+        io?: {
+            connect?: (url?: string, options?: Record<string, unknown>) => Socket;
+            emit?: (event: string, data?: unknown) => void;
+            on?: (event: string, callback: (...args: unknown[]) => void) => void;
+            off?: (event: string, callback?: (...args: unknown[]) => void) => void;
+            disconnect?: () => void;
+        };
+        NotificationManager?: {
+            new (streamUrl: string): {
+                connect: () => void;
+                disconnect: () => void;
+                onNotification: (callback: (notification: NotificationPayload) => void) => void;
+            };
+        };
+        NotificationPayload?: {
+            id: number;
+            type: string;
+            message: string;
+            data?: Record<string, unknown>;
+            timestamp?: string;
+        };
         ProntoRealtime?: {
             subscribe: (callback: (event: any) => void) => () => void;
         };

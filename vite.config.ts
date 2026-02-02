@@ -80,6 +80,21 @@ export default defineConfig({
         entryFileNames: "[name].js",
         chunkFileNames: "chunks/[name]-[hash].js",
         assetFileNames: "assets/[name]-[hash][extname]",
+        manualChunks(id) {
+          if (id.includes("node_modules/vue")) {
+            return "vue-vendor";
+          }
+          if (id.includes("node_modules/lucide")) {
+            return "lucide-icons";
+          }
+          if (id.includes("/src/vue/shared/")) {
+            return "shared-utils";
+          }
+          // Split large board modules
+          if (id.includes("/modules/") && /-board\.ts$/.test(id)) {
+            return "boards";
+          }
+        },
       },
     },
   },

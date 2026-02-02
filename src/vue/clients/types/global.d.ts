@@ -1,5 +1,10 @@
 export { };
 
+declare module 'lucide/dist/umd/lucide.js' {
+    export function createIcons(options?: { attributes?: string; nameAttr?: string }): void;
+    export const icons: Record<string, unknown>;
+}
+
 interface ImportMetaEnv {
     readonly DEV: boolean;
     readonly VITE_API_URL?: string;
@@ -10,20 +15,7 @@ interface ImportMeta {
     readonly env: ImportMetaEnv;
 }
 
-interface CartItem {
-  id: number;
-  itemId: number;
-  name: string;
-  price: number;
-  quantity: number;
-  modifiers?: Array<{
-    id: number;
-    name: string;
-    price: number;
-    quantity: number;
-  }>;
-  notes?: string;
-}
+// CartItem is defined in cart-persistence.ts - use import type { CartItem } from '../modules/cart-persistence'
 
 interface ThankYouData {
   orderId: number;

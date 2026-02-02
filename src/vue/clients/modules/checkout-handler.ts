@@ -4,8 +4,7 @@
  */
 
 import { requestJSON } from '../core/http';
-import type { CartItem } from './cart-manager';
-import { CartPersistence } from './cart-persistence';
+import { CartPersistence, type CartItem } from './cart-persistence';
 
 const DEFAULT_COUNTRY = '+52';
 const ANONYMOUS_CLIENT_ID_KEY = 'pronto-anonymous-client-id';

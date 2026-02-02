@@ -3,7 +3,7 @@
  * Handles item modal display, modifier selection, and validation
  */
 
-import type { CartItem } from './cart-manager';
+import type { CartItem } from './cart-persistence';
 
 export interface MenuModifier {
   id: number;
