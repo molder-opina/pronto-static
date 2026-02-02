@@ -358,9 +358,6 @@ export class TableAssignmentManager {
             }
         } catch (error) {
             console.error('[TABLE_ASSIGNMENT] Error loading my tables:', error);
-            const message = error instanceof Error ? error.message : 'Error desconocido';
-            this.showToast(`Error al cargar tus mesas asignadas: ${message}`, 'danger');
-            this.myTables = [];
         }
     }
 
@@ -381,9 +378,6 @@ export class TableAssignmentManager {
             }
         } catch (error) {
             console.error('[TABLE_ASSIGNMENT] Error loading all tables:', error);
-            const message = error instanceof Error ? error.message : 'Error desconocido';
-            this.showToast(`Error al cargar las mesas disponibles: ${message}`, 'danger');
-            this.allTables = [];
         }
     }
 
@@ -797,7 +791,6 @@ export class TableAssignmentManager {
             }
         } catch (error) {
             console.error('[TABLE_ASSIGNMENT] Error loading assigned tables for display:', error);
-            this.hideAssignedTablesDisplay();
         }
     }
 

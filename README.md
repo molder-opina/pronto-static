@@ -24,23 +24,32 @@ src/
 │       │   └── clients/      # Output de vite build --target clients
 │       ├── pronto/            # ✅ Branding y assets del sistema
 │       │   ├── branding/     # Branding por restaurante
-│       │   ├── icons/        # Iconos del sistema
-│       │   └── shared/       # Imágenes compartidas
-│       └── fonts/            # Fuentes web
+│       │   ├── menu/         # Assets de menú
+│       │   ├── products/     # Assets de productos
+│       │   └── avatars/      # Avatares
+│       ├── images/           # Imágenes generales
+│       ├── audio/            # Audio
+│       └── lib/              # Librerías estáticas (UMD/min)
 │
 └── vue/                      # Fuentes TypeScript/Vue
     ├── shared/               # ✅ Código compartido (TypeScript)
-    │   ├── lib/              # Utilidades (formatting, validators, constants)
-    │   ├── domain/           # Lógica de dominio (table-code, order-types)
-    │   └── types/            # TypeScript types compartidos
+    │   ├── lib/              # Utilidades (formatting, constants)
+    │   ├── domain/           # Lógica de dominio (table-code)
+    │   ├── types/            # TypeScript types compartidos
+    │   ├── utils/            # Composables/ayudantes (useToggle, useFetch, etc.)
+    │   └── components/       # Componentes Vue compartidos
     ├── employees/            # App Vue Employees
     │   ├── components/
+    │   ├── core/
     │   ├── modules/
     │   └── entrypoints/
     └── clients/              # App Vue Clients
         ├── components/
+        ├── core/
         ├── modules/
-        └── entrypoints/
+        ├── entrypoints/
+        ├── store/
+        └── types/
 ```
 
 ## Código Compartido
@@ -57,8 +66,8 @@ import { OrderStatus, TableType } from '@shared/types';
 ```
 
 **Contenido:**
-- `lib/` - Utilidades generales (formatCurrency, validators, constants)
-- `domain/` - Lógica de dominio (table-code, order-types)
+- `lib/` - Utilidades generales (formatCurrency, constants)
+- `domain/` - Lógica de dominio (table-code)
 - `types/` - TypeScript types compartidos
 
 ### CSS Shared (`assets/css/shared/`)
@@ -111,15 +120,7 @@ docker-compose up -d static
 
 ## Notas
 
-- `node_modules/` está excluido del git por defecto
-- Para builds offline o más rápidos, puedes incluirlo:
-
-  ```bash
-  # Comentar en .gitignore:
-  # node_modules/
-
-  # Luego commitearlos si lo deseas
-  git add node_modules && git commit -m "Add node_modules for offline builds"
-  ```
+- `node_modules/` **no** está excluido por defecto (la regla está comentada en `.gitignore`).
+- Si quieres excluirlo, descomenta la línea `node_modules/` en `.gitignore`.
 
 - Docker usa caché de capas, así que las dependencias se cachean automáticamente hasta que `package.json` cambie

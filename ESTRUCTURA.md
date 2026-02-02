@@ -8,36 +8,37 @@ pronto-static/
 │   ├── vue/                          # Código fuente TypeScript/Vue
 │   │   ├── shared/                   # ✅ TypeScript compartido
 │   │   │   ├── lib/                  # Biblioteca de utilidades
-│   │   │   │   ├── formatting.ts     # formatCurrency, escapeHtml, formatDateTime
-│   │   │   │   ├── validators.ts     # validateEmail, validatePhone, etc.
-│   │   │   │   └── constants.ts      # constantes globales (regex, límites)
+│   │   │   │   ├── formatting.ts     # formatCurrency, formatDateTime
+│   │   │   │   └── constants.ts      # constantes globales
 │   │   │   ├── domain/               # Lógica de dominio compartida
-│   │   │   │   ├── table-code.ts     # códigos de mesa (AREA-MNN)
-│   │   │   │   ├── order-types.ts    # tipos de órdenes, estados
-│   │   │   │   └── table-types.ts    # tipos de mesa, áreas
-│   │   │   └── types/                # TypeScript types compartidos
-│   │   │       ├── api.ts            # API response types
-│   │   │       ├── order.ts          # Order interfaces
-│   │   │       └── table.ts          # Table interfaces
+│   │   │   │   └── table-code.ts     # códigos de mesa (AREA-MNN)
+│   │   │   ├── types/                # TypeScript types compartidos
+│   │   │   │   └── index.ts
+│   │   │   ├── utils/                # Composables/ayudantes
+│   │   │   └── components/           # Componentes Vue compartidos
 │   │   ├── clients/                  # App Vue Client
 │   │   │   ├── components/           # Componentes específicos
+│   │   │   ├── core/                 # Núcleo de la app
 │   │   │   ├── modules/              # Módulos de lógica
-│   │   │   ├── entrypoints/           # Puntos de entrada
-│   │   │   └── styles/               # Estilos específicos
+│   │   │   ├── entrypoints/          # Puntos de entrada
+│   │   │   ├── store/                # Estado
+│   │   │   └── types/                # Tipos
 │   │   └── employees/                # App Vue Employees
 │   │       ├── components/           # Componentes específicos
+│   │       ├── core/                 # Núcleo de la app
 │   │       ├── modules/              # Módulos de lógica
-│   │       ├── entrypoints/           # Puntos de entrada
-│   │       └── styles/               # Estilos específicos
+│   │       └── entrypoints/          # Puntos de entrada
 │   │
 │   └── static_content/               # Archivos estáticos (servidos por nginx)
 │       ├── assets/                   # Todos los assets
 │       │   ├── css/                   # Hojas de estilo
 │       │   │   ├── shared/            # ✅ CSS compartido
 │       │   │   │   ├── base.css       # Reset, variables, utilities
-│       │   │   │   ├── typography.css  # Tipografía
 │       │   │   │   ├── components.css  # Componentes reutilizables (botones, cards)
-│       │   │   │   └── utilities.css   # Utility classes
+│       │   │   │   ├── utilities.css   # Utility classes
+│       │   │   │   ├── README.md
+│       │   │   │   └── components/
+│       │   │   │       └── empty-state.css
 │       │   │   ├── clients/           # CSS específico de clientes
 │       │   │   │   ├── menu.css
 │       │   │   │   ├── checkout.css
@@ -48,39 +49,27 @@ pronto-static/
 │       │   │       └── components/
 │       │   │
 │       │   ├── js/                    # JavaScript compilado (output de Vite)
-│       │   │   ├── shared/            # ✅ JS compartido (opcional)
-│       │   │   │   └── utils.js       # Utilidades vanilla JS
+│       │   │   ├── shared/            # ✅ JS compartido (vanilla)
+│       │   │   │   ├── loading.js
+│       │   │   │   ├── pagination.js
+│       │   │   │   ├── keyboard-shortcuts.js
+│       │   │   │   └── notifications.js
 │       │   │   ├── clients/           # JS compilado de clients
-│       │   │   │   ├── dashboard.js
-│       │   │   │   ├── base.js
 │       │   │   │   └── chunks/        # Code splitting
 │       │   │   └── employees/         # JS compilado de employees
-│       │   │       ├── dashboard.js
-│       │   │       ├── base.js
 │       │   │       └── chunks/
 │       │   │
 │       │   ├── pronto/                # ✅ Branding y assets del sistema
-│       │   │   ├── icons/             # Iconos del sistema
-│       │   │   ├── logos/             # Logos pronto
-│       │   │   ├── branding/          # Branding por slug de restaurante
-│       │   │   │   ├── cafeteria-demo/
-│       │   │   │   │   ├── icons/
-│       │   │   │   │   ├── banners/
-│       │   │   │   │   └── products/
-│       │   │   │   └── my-restaurant/
-│       │   │   │       ├── icons/
-│       │   │   │       ├── banners/
-│       │   │   │       └── products/
-│       │   │   └── shared/            # Imágenes compartidas
-│       │   │       ├── placeholder.png
-│       │   │       └── logo-default.png
+│       │   │   ├── branding/          # Branding por restaurante
+│       │   │   ├── menu/              # Assets de menú
+│       │   │   ├── products/          # Assets de productos
+│       │   │   └── avatars/           # Avatares
 │       │   │
-│       │   └── fonts/                # Fuentes web
-│       │       ├── Inter/
-│       │       └── Roboto/
+│       │   ├── images/               # Imágenes generales
+│       │   ├── audio/                # Audio
+│       │   └── lib/                  # Librerías estáticas (UMD/min)
 │       │
-│       └── branding/                 # ⚠️ ELIMINAR - Redundante con assets/pronto/branding
-│           └── (vacío, eliminar)
+│       └── branding/                 # Carpeta vacía (legacy)
 │
 ├── package.json
 ├── vite.config.ts
@@ -99,7 +88,9 @@ src/vue/
 ├── shared/           # Código compartido entre apps
 │   ├── lib/         # Utilidades generales (reutilizables)
 │   ├── domain/      # Lógica de negocio compartida
-│   └── types/       # TypeScript types compartidos
+│   ├── types/       # TypeScript types compartidos
+│   ├── utils/       # Composables/ayudantes
+│   └── components/  # Componentes Vue compartidos
 ├── clients/         # App específica de clientes
 └── employees/       # App específica de empleados
 ```
@@ -122,8 +113,10 @@ Propósito: Archivos servidos directamente por nginx
 assets/
 ├── css/             # Hojas de estilo (pueden ser editadas)
 ├── pronto/          # Branding e imágenes del sistema
-├── fonts/           # Fuentes web
-└── js/              # Solo output de compilación
+├── images/          # Imágenes generales
+├── audio/           # Audio
+├── lib/             # Librerías estáticas
+└── js/              # Output de compilación + JS compartido
 ```
 
 ## 📦 ¿Crear una librería de contenido estático?
@@ -137,17 +130,13 @@ assets/
 src/vue/shared/
 ├── lib/
 │   ├── formatting.ts      # ✅ Reutilizable
-│   ├── validators.ts      # ✅ Reutilizable
-│   ├── constants.ts       # ✅ Reutilizable
-│   └── helpers.ts         # ✅ Reutilizable
+│   └── constants.ts       # ✅ Reutilizable
 ├── domain/
-│   ├── table-code.ts      # ✅ Dominio compartido
-│   ├── order-types.ts      # ✅ Dominio compartido
-│   └── table-types.ts      # ✅ Dominio compartido
-└── types/
-    ├── api.ts             # ✅ Types compartidos
-    ├── order.ts           # ✅ Types compartidos
-    └── table.ts           # ✅ Types compartidos
+│   └── table-code.ts      # ✅ Dominio compartido
+├── types/
+│   └── index.ts           # ✅ Types compartidos
+├── utils/                 # ✅ Composables/ayudantes
+└── components/            # ✅ Componentes Vue compartidos
 ```
 
 **Opciones de implementación:**
@@ -225,11 +214,14 @@ resolve: {
 
 ```
 assets/
-├── pronto/branding/        # ❌ NO separar en librería
-├── pronto/icons/          # ❌ NO separar en librería
-├── pronto/shared/          # ❌ NO separar en librería
+├── pronto/branding/       # ❌ NO separar en librería
+├── pronto/menu/           # ❌ NO separar en librería
+├── pronto/products/       # ❌ NO separar en librería
+├── pronto/avatars/        # ❌ NO separar en librería
 ├── css/shared/            # ❌ NO separar en librería
-└── fonts/                 # ❌ NO separar en librería
+├── images/                # ❌ NO separar en librería
+├── audio/                 # ❌ NO separar en librería
+└── lib/                   # ❌ NO separar en librería
 ```
 
 **Razones:**
@@ -252,18 +244,13 @@ assets/
 src/vue/shared/
 ├── lib/
 │   ├── formatting.ts     # Utilidades de formato
-│   ├── validators.ts      # Validadores (email, phone, etc.)
-│   ├── constants.ts       # Constantes globales
-│   └── storage.ts         # localStorage, sessionStorage helpers
+│   └── constants.ts      # Constantes globales
 ├── domain/
-│   ├── table-code.ts      # Códigos de mesa
-│   ├── order-types.ts     # Tipos de órdenes
-│   └── area-types.ts      # Tipos de áreas
-└── types/
-    ├── api.ts             # API types
-    ├── order.ts           # Order types
-    ├── table.ts           # Table types
-    └── employee.ts        # Employee types
+│   └── table-code.ts     # Códigos de mesa
+├── types/
+│   └── index.ts          # Tipos compartidos
+├── utils/                # Composables/ayudantes
+└── components/           # Componentes Vue compartidos
 ```
 
 ### 2. Crear barrel exports
@@ -271,20 +258,13 @@ src/vue/shared/
 ```typescript
 // src/vue/shared/lib/index.ts
 export * from './formatting';
-export * from './validators';
 export * from './constants';
-export * from './storage';
 
 // src/vue/shared/domain/index.ts
 export * from './table-code';
-export * from './order-types';
-export * from './area-types';
 
 // src/vue/shared/types/index.ts
-export * from './api';
-export * from './order';
-export * from './table';
-export * from './employee';
+// Tipos definidos en este mismo archivo.
 
 // src/vue/shared/index.ts
 export * from './lib';
@@ -356,7 +336,7 @@ body {
   color: var(--color-primary);
 }
 
-/* assets/css/shared/typography.css */
+/* assets/css/shared/base.css */
 h1, h2, h3, h4, h5, h6 {
   line-height: 1.2;
   margin-bottom: var(--spacing-md);
@@ -456,7 +436,7 @@ mv src/vue/shared/table-code.ts src/vue/shared/domain/
 
 # 5. Crear CSS compartido
 mkdir -p src/static_content/assets/css/shared
-# (crear archivos base.css, typography.css, etc.)
+# (crear archivos base.css, components.css, utilities.css, etc.)
 
 # 6. Eliminar directorio redundante
 rm -rf src/vue/clients/shared/

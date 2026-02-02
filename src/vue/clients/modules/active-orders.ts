@@ -362,17 +362,6 @@ async function refreshActiveOrders(showLoading: boolean = true): Promise<void> {
     }
   } catch (error) {
     console.error('[ActiveOrders] Error loading active orders:', error);
-    if (ordersSection && singleTracker) {
-      singleTracker.style.display = 'block';
-      if (multipleView) multipleView.style.display = 'none';
-      singleTracker.innerHTML = `
-                <div style="text-align: center; padding: 3rem 1rem;">
-                    <p style="font-size: 3rem; margin-bottom: 1rem;">⚠️</p>
-                    <h3 style="color: var(--text); margin-bottom: 0.5rem;">Error al cargar</h3>
-                    <p style="color: var(--muted);">No se pudieron cargar las órdenes. Intenta recargar la página.</p>
-                </div>
-            `;
-    }
   }
 }
 
@@ -915,9 +904,8 @@ function displayActiveOrders(orders: any[], session: any): void {
 
   if (!singleTracker || !multipleView || !list) {
     console.error('[ActiveOrders] Missing containers!', {
-      singleTracker: !!singleTracker,
-      multipleView: !!multipleView,
-      list: !!list,
+      menuContainer,
+      ordersContainer,
     });
     return;
   }

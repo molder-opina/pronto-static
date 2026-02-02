@@ -1,17 +1,10 @@
-# Resumen: Estructura de Contenido Estático
+# Resumen: Estructura Actual de Contenido Estático
 
 ## ✅ Cambios Realizados
 
-### 1. Reorganización de TypeScript Shared (`src/vue/shared/`)
+### 1. TypeScript Shared (`src/vue/shared/`)
 
-**Estructura anterior:**
-```
-src/vue/shared/
-├── formatting.ts
-└── table-code.ts
-```
-
-**Estructura nueva:**
+**Estructura actual:**
 ```
 src/vue/shared/
 ├── lib/                        # Utilidades generales
@@ -22,7 +15,9 @@ src/vue/shared/
 │   ├── table-code.ts           # Movido desde shared/
 │   └── index.ts                # ✨ NUEVO: Barrel export
 ├── types/                      # TypeScript types
-│   └── index.ts                # ✨ NUEVO: API, order, table types
+│   └── index.ts                # Tipos compartidos
+├── utils/                      # Composables/ayudantes
+├── components/                 # Componentes Vue compartidos
 └── index.ts                    # ✨ NUEVO: Barrel export principal
 ```
 
@@ -120,13 +115,8 @@ src/static_content/assets/css/shared/
 - Sección de código compartido (TypeScript y CSS)
 - Referencias a documentación detallada
 
-### 5. Archivos Reorganizados
+### 5. Archivos Clave
 
-**Movidos:**
-- `formatting.ts` → `src/vue/shared/lib/formatting.ts`
-- `table-code.ts` → `src/vue/shared/domain/table-code.ts`
-
-**Creados:**
 - `src/vue/shared/lib/constants.ts`
 - `src/vue/shared/lib/index.ts`
 - `src/vue/shared/domain/index.ts`
@@ -213,7 +203,7 @@ import { formatCurrency, buildTableCode } from '@shared';
    grep -r "from.*shared.*table-code" src/vue/
    ```
 
-2. **Actualizar vite.config.ts** para incluir alias en clientes/employees
+2. **Confirmar alias** en `vite.config.ts` para @shared/@clients/@employees
 
 3. **Actualizar tsconfig.json** para resolver alias:
 
