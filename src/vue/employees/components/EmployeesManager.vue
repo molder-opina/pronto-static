@@ -70,8 +70,8 @@ const loadRoles = async () => {
       { value: 'waiter', label: 'Mesero' },
       { value: 'chef', label: 'Cocinero' },
       { value: 'cashier', label: 'Cajero' },
-      { value: 'supervisor', label: 'Supervisor' },
       { value: 'admin', label: 'Administrador' },
+      { value: 'system', label: 'Sistema' },
     ];
   }
 };
@@ -112,7 +112,7 @@ const getRoleLabel = (roleVal: string) => {
 const getRoleBadgeClass = (role: string) => {
   const map: Record<string, string> = {
     admin: 'bg-purple-100 text-purple-800',
-    supervisor: 'bg-blue-100 text-blue-800',
+    system: 'bg-blue-100 text-blue-800',
     chef: 'bg-orange-100 text-orange-800',
     waiter: 'bg-green-100 text-green-800',
     cashier: 'bg-teal-100 text-teal-800',

@@ -64,7 +64,7 @@ class RoleManagementManager {
 
     private currentEmployee: EmployeeRecord | null = null;
     private systemPermissions: RolePermission[] = [];
-    private currentSystemRole = 'super_admin';
+    private currentSystemRole = 'system';
 
     constructor(assignmentRoot: HTMLElement | null, permissionsRoot: HTMLElement | null) {
         this.assignmentRoot = assignmentRoot;
@@ -153,7 +153,7 @@ class RoleManagementManager {
     private renderSearchResults(employees: EmployeeRecord[]): void {
         if (!this.resultsContainer) return;
         const roleNames: Record<string, string> = {
-            super_admin: 'Super Admin',
+            system: 'Super Admin',
             admin: 'Administrador',
             waiter: 'Mesero',
             chef: 'Chef',
@@ -222,7 +222,7 @@ class RoleManagementManager {
     private renderRoleSelector(): void {
         if (!this.roleSelector || !this.currentEmployee) return;
         const roles = [
-            { key: 'super_admin', icon: '👑', name: 'Super Admin' },
+            { key: 'system', icon: '👑', name: 'Super Admin' },
             { key: 'admin', icon: '⚙️', name: 'Administrador' },
             { key: 'waiter', icon: '🍽️', name: 'Mesero' },
             { key: 'chef', icon: '👨‍🍳', name: 'Chef' },
@@ -359,7 +359,7 @@ class RoleManagementManager {
                 description: string;
             }
         > = {
-            super_admin: { title: 'Super Admin', description: 'Acceso completo al sistema' },
+            system: { title: 'Super Admin', description: 'Acceso completo al sistema' },
             admin: { title: 'Administrador', description: 'Gestión completa del restaurante' },
             waiter: { title: 'Mesero', description: 'Atención de mesas y órdenes' },
             chef: { title: 'Chef', description: 'Gestión de cocina' },

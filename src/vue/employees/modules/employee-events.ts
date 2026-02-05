@@ -130,14 +130,15 @@ class EmployeeEventsManager {
 
     private async pollRealtimeEvents(): Promise<void> {
         try {
-            const response = await fetch(`/api/realtime/events?after_id=${this.lastEventId}&limit=50`);
+            const response = await fetch(`/api/realtime/notifications?after_id=${this.lastEventId}&limit=50&timeout_ms=5000`);
             if (!response.ok) return;
 
             const data = await response.json();
-            const events = data.events || [];
+            const payload = data?.data ?? data;
+            const events = payload?.events || [];
 
-            if (data.last_id) {
-                this.lastEventId = data.last_id;
+            if (payload?.last_id) {
+                this.lastEventId = payload.last_id;
                 // Persist to sessionStorage so notifications don't repeat on page reload
                 this.persistLastEventId();
             }
@@ -151,7 +152,7 @@ class EmployeeEventsManager {
 
             for (const event of events) {
                 // Avoid processing duplicates
-                const eventKey = `${event.type}-${event.timestamp}`;
+                const eventKey = event.event_id || `${event.type}-${event.timestamp}`;
                 if (this.processedEvents.has(eventKey)) continue;
                 this.processedEvents.add(eventKey);
 
@@ -174,21 +175,12 @@ class EmployeeEventsManager {
         const eventData = event.payload || event.data || event;
 
         switch (eventType) {
-            case 'staff.admin_call':
+            case 'admin_call':
                 this.handleAdminCallNotification(eventData);
                 break;
-            case 'staff.supervisor_call':
-                this.handleSupervisorCallNotification(eventData);
-                break;
-            case 'staff.waiter_call':
+            case 'waiter_call':
                 this.handleWaiterCallNotification(eventData);
                 this.upsertClientRequestFromSocket(eventData);
-                break;
-            case 'orders.new':
-                this.handleNewOrderNotification(eventData);
-                break;
-            case 'orders.status_changed':
-                this.handleOrderStatusNotification(eventData);
                 break;
         }
     }
@@ -216,7 +208,6 @@ class EmployeeEventsManager {
                 this.handleWaiterCallNotification(data);
                 this.upsertClientRequestFromSocket(data);
             });
-            this.socket.on('supervisor_call', (data: any) => this.handleSupervisorCallNotification(data));
         } catch (error) {
             console.error('[EmployeeEvents] socket error', error);
         }
@@ -249,9 +240,10 @@ class EmployeeEventsManager {
     private async loadClientRequests(): Promise<void> {
         if (!this.requestsContainer) return;
         try {
-            const response = await fetch('/api/waiter-calls/pending');
+            const response = await fetch('/api/notifications/waiter/pending');
             const data = await response.json();
-            const calls = Array.isArray(data.waiter_calls) ? data.waiter_calls : [];
+            const payload = data?.data ?? data;
+            const calls = Array.isArray(payload?.waiter_calls) ? payload.waiter_calls : [];
             const normalized = calls.map((call: WaiterCallPayload) => this.normalizeRequest(call)).filter(Boolean) as NormalizedRequest[];
             this.renderClientRequests(normalized);
         } catch (error) {
@@ -355,7 +347,7 @@ class EmployeeEventsManager {
     private async confirmClientRequest(requestId: number): Promise<void> {
         if (!requestId) return;
         try {
-            const response = await fetch(`/api/waiter-calls/${requestId}/confirm`, {
+            const response = await fetch(`/api/notifications/waiter/confirm/${requestId}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ employee_id: window.APP_DATA?.employee_id || null })
@@ -457,7 +449,7 @@ class EmployeeEventsManager {
     }
 
     private handleAdminCallNotification(data: any): void {
-        const role = window.APP_DATA?.employee_role || 'staff';
+        const role = window.APP_DATA?.employee_role || 'waiter';
         // Only admins/system should see these notifications
         const allowed = ['system', 'admin'];
         if (!allowed.includes(role)) return;
@@ -473,21 +465,6 @@ class EmployeeEventsManager {
         const bellIcon = document.querySelector('.notification-bell');
         bellIcon?.classList.add('ringing');
         setTimeout(() => bellIcon?.classList.remove('ringing'), 4000);
-    }
-
-    private handleSupervisorCallNotification(data: any): void {
-        const role = window.APP_DATA?.employee_role || 'staff';
-        const allowed = ['super_admin', 'admin', 'supervisor'];
-        if (!allowed.includes(role)) return;
-        let message = `${data.waiter_name || 'Un mesero'} solicita ayuda`;
-        if (data.table_number) message += ` (Mesa ${data.table_number})`;
-        if (data.order_id) message += ` - Pedido #${data.order_id}`;
-        this.showDesktopNotification('🔔 Llamada de Supervisor', message, 'supervisor_call');
-        this.playNotificationSound(true);
-        window.showToast?.(`🚨 ${message}`, 'warning');
-        const bellIcon = document.querySelector('.notification-bell');
-        bellIcon?.classList.add('ringing');
-        setTimeout(() => bellIcon?.classList.remove('ringing'), 3000);
     }
 
     private static audioContext: AudioContext | null = null;
@@ -599,7 +576,7 @@ class EmployeeEventsManager {
 
     public static async callAdmin(message: string = ''): Promise<void> {
         try {
-            const response = await fetch('/api/notifications/call-admin', {
+            const response = await fetch('/api/notifications/admin/call', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ message })

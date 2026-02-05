@@ -42,7 +42,7 @@ export class EmployeesManager {
         { value: 'chef', label: 'Cocinero' },
         { value: 'cashier', label: 'Cajero' },
         { value: 'admin', label: 'Administrador' }, // role real backend name
-        { value: 'supervisor', label: 'Supervisor' }
+        { value: 'system', label: 'Sistema' }
     ];
 
     constructor(containerId: string) {
@@ -157,7 +157,7 @@ export class EmployeesManager {
     private getRoleBadgeColor(role: string): string {
         switch (role) {
             case 'admin': return 'purple';
-            case 'supervisor': return 'blue';
+            case 'system': return 'blue';
             case 'chef': return 'orange';
             case 'waiter': return 'green';
             case 'cashier': return 'teal';

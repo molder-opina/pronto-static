@@ -2,6 +2,7 @@ import { requestJSON } from '../core/http';
 import { getCapabilitiesForRole, normalizeBackendCapabilities } from './role-context';
 import { showToastGlobal } from '../core/toast';
 import { escapeHtml } from '@shared/lib/formatting';
+import { deriveSessionsFromOrders } from '@shared/lib/session_state';
 
 declare var window: Window &
   typeof globalThis & {
@@ -197,7 +198,7 @@ class KitchenBoard {
     // This is a defensive fallback in case backend capabilities fail to load
     const isChefRole =
       employeeRole &&
-      ['chef', 'cook', 'admin', 'admin', 'super_admin'].includes(employeeRole.toLowerCase());
+      ['chef', 'admin', 'system'].includes(employeeRole.toLowerCase());
     this.canAdvanceKitchen = Boolean(caps?.canAdvanceKitchen) || isChefRole;
 
     console.log('[KITCHEN] Permissions initialized:', {
@@ -920,11 +921,47 @@ class KitchenBoard {
 
     try {
       showFeedback(this.paidFeedback, 'Cargando...');
-      const response = await fetch('/api/sessions/paid');
-      if (!response.ok) throw new Error('Error al cargar sesiones pagadas');
+      // Paid/closed status lives on orders, not sessions. Build a session-like list from orders.
+      const response = await fetch('/api/orders?status=paid&status=cancelled');
+      if (!response.ok) throw new Error('Error al cargar órdenes');
 
-      const data = await response.json();
-      const sessions: SessionInfo[] = data.sessions || [];
+      const data = await response.json().catch(() => ({} as any));
+      const orders: OrderInfo[] =
+        (data?.data?.orders as OrderInfo[]) ||
+        (data?.orders as OrderInfo[]) ||
+        (data?.data as OrderInfo[]) ||
+        [];
+
+      const derived = deriveSessionsFromOrders(
+        orders.map((o) => ({
+          id: (o as any).id,
+          session_id: Number((o as any).session_id),
+          workflow_status: (o as any).workflow_status,
+          paid_at: (o as any).paid_at,
+          updated_at: (o as any).updated_at,
+          created_at: (o as any).created_at,
+        }))
+      );
+
+      const sessions: SessionInfo[] = derived
+        .filter((s) => s.state === 'paid')
+        .map((s) => {
+          const first = orders.find((o) => Number(o.session_id) === s.session_id);
+          const session = first?.session;
+          const total =
+            typeof session?.totals?.total_amount === 'number'
+              ? session.totals.total_amount
+              : Number(first?.total_amount ?? 0);
+          return {
+            id: s.session_id,
+            table_number: session?.table_number ?? null,
+            customer_name: first?.customer?.name || 'Cliente',
+            total,
+            orders_count: s.orders.length,
+            closed_at: s.last_activity_at || '',
+          };
+        })
+        .filter((s) => this.isWithinDateFilter(s.closed_at || ''));
 
       this.paidSessionsTable.replaceChildren();
 
@@ -1043,21 +1080,29 @@ class KitchenBoard {
     console.log('[KITCHEN] Refreshing orders manually...');
     showFeedback(this.feedback, 'Actualizando...');
     try {
-      const response = await fetch('/api/orders/kitchen/pending');
+      const response = await fetch('/api/orders?status=queued');
       if (!response.ok) throw new Error('Error al cargar órdenes');
 
       const data = await response.json();
-      const newOrders: OrderInfo[] = (data.orders || []).map((order: OrderInfo) => {
-        const normalizedStatus = normalizeWorkflowStatus(
-          order.workflow_status,
-          order.workflow_status_legacy
-        );
-        return {
-          ...order,
-          workflow_status: normalizedStatus,
-          workflow_status_legacy: normalizedStatus,
-        };
-      });
+      const allOrders: OrderInfo[] =
+        (data?.data?.orders as OrderInfo[]) ||
+        (data?.orders as OrderInfo[]) ||
+        (data?.data as OrderInfo[]) ||
+        [];
+      const newOrders: OrderInfo[] = allOrders
+        .map((order: OrderInfo) => {
+          const normalizedStatus = normalizeWorkflowStatus(
+            order.workflow_status,
+            order.workflow_status_legacy
+          );
+          return {
+            ...order,
+            workflow_status: normalizedStatus,
+            workflow_status_legacy: normalizedStatus,
+          };
+        })
+        // Kitchen pending = queued
+        .filter((order) => order.workflow_status === 'queued');
 
       // Update global data
       window.KITCHEN_ORDERS_DATA = newOrders;
@@ -1299,21 +1344,29 @@ class KitchenBoard {
 
     const pollForUpdates = async () => {
       try {
-        const response = await fetch('/api/orders/kitchen/pending');
+        const response = await fetch('/api/orders?status=queued');
         if (!response.ok) return;
 
         const data = await response.json();
-        const newOrders: OrderInfo[] = (data.orders || []).map((order: OrderInfo) => {
-          const normalizedStatus = normalizeWorkflowStatus(
-            order.workflow_status,
-            order.workflow_status_legacy
-          );
-          return {
-            ...order,
-            workflow_status: normalizedStatus,
-            workflow_status_legacy: normalizedStatus,
-          };
-        });
+        const allOrders: OrderInfo[] =
+          (data?.data?.orders as OrderInfo[]) ||
+          (data?.orders as OrderInfo[]) ||
+          (data?.data as OrderInfo[]) ||
+          [];
+        const newOrders: OrderInfo[] = allOrders
+          .map((order: OrderInfo) => {
+            const normalizedStatus = normalizeWorkflowStatus(
+              order.workflow_status,
+              order.workflow_status_legacy
+            );
+            return {
+              ...order,
+              workflow_status: normalizedStatus,
+              workflow_status_legacy: normalizedStatus,
+            };
+          })
+          // Kitchen pending = queued
+          .filter((order) => order.workflow_status === 'queued');
         const currentOrderIds = new Set(newOrders.map((o) => o.id));
 
         // Check for new orders that weren't there before

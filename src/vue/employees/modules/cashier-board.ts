@@ -764,18 +764,74 @@ class CashierBoard {
     if (!this.paidSessionsTable) return;
 
     try {
-      const response = await fetch('/api/sessions/closed');
+      // Paid/closed status lives on orders, not sessions. Build a session-like list from orders.
+      const response = await fetch('/api/orders?status=paid&status=cancelled');
       if (!response.ok) {
         const errorPayload = await response.json().catch(() => ({}));
         const msg =
-          errorPayload?.message || errorPayload?.error || 'Error al cargar sesiones cerradas';
+          errorPayload?.message || errorPayload?.error || 'Error al cargar órdenes';
         throw new Error(msg);
       }
 
-      const data = await response.json();
-      const sessions: ClosedSession[] = data.closed_sessions || data.sessions || [];
+      const data = await response.json().catch(() => ({} as any));
+      const orders: any[] =
+        (data?.data?.orders as any[]) || (data?.orders as any[]) || (data?.data as any[]) || [];
+
+      const sessionsById = new Map<number, ClosedSession>();
+      for (const order of orders) {
+        const status = String(order?.workflow_status || '');
+        if (status !== 'paid' && status !== 'cancelled') continue;
+
+        const sessionId = Number(order?.session_id);
+        if (!Number.isFinite(sessionId)) continue;
+
+        const sessionObj = order?.session || {};
+        const totals = sessionObj?.totals || {};
+        const history = Array.isArray(order?.history) ? order.history : [];
+        const paidHistoryTs =
+          history
+            .filter((e: any) => e?.status === 'paid' && e?.changed_at)
+            .map((e: any) => String(e.changed_at))
+            .sort()
+            .slice(-1)[0] || '';
+        const cancelledHistoryTs =
+          history
+            .filter((e: any) => e?.status === 'cancelled' && e?.changed_at)
+            .map((e: any) => String(e.changed_at))
+            .sort()
+            .slice(-1)[0] || '';
+        const movementAt =
+          status === 'paid'
+            ? order?.paid_at || paidHistoryTs || order?.updated_at || order?.created_at
+            : cancelledHistoryTs || order?.updated_at || order?.created_at;
+        const closedAt = movementAt;
+
+        const existing = sessionsById.get(sessionId) as any;
+        const orderIds = Array.isArray(existing?.order_ids) ? existing.order_ids : [];
+        orderIds.push(Number(order?.id));
+
+        const totalAmount =
+          typeof totals?.total_amount === 'number' ? totals.total_amount : Number(order?.total_amount ?? 0);
+
+        sessionsById.set(sessionId, {
+          ...(existing || {}),
+          id: sessionId,
+          table_number: existing?.table_number || sessionObj?.table_number || 'N/A',
+          customer_name: existing?.customer_name || order?.customer?.name || 'Cliente',
+          customer_email: existing?.customer_email || order?.customer?.email || '',
+          customer_phone: existing?.customer_phone || order?.customer?.phone || '',
+          payment_method: existing?.payment_method || order?.payment_method || '',
+          total_amount: Number(existing?.total_amount ?? totalAmount),
+          orders_count: (existing?.orders_count ?? 0) + 1,
+          order_ids: orderIds,
+          closed_at: existing?.closed_at || closedAt,
+          status: existing?.status || (status === 'cancelled' ? 'cancelled' : 'paid'),
+        } as any);
+      }
+
+      const sessions: ClosedSession[] = Array.from(sessionsById.values());
       const filteredSessions = sessions.filter((session) =>
-        this.isWithinDateFilter(session.closed_at || '')
+        this.isWithinDateFilter((session as any).closed_at || '')
       );
 
       if (filteredSessions.length === 0) {
@@ -966,7 +1022,13 @@ class CashierBoard {
       if (!response.ok) throw new Error('Error al cargar órdenes');
 
       const data = await response.json();
-      const newOrders: OrderInfo[] = (data.orders || []).map((order: OrderInfo) => {
+      const ordersRaw: OrderInfo[] =
+        (data?.data?.orders as OrderInfo[]) ||
+        (data?.orders as OrderInfo[]) ||
+        (data?.data as OrderInfo[]) ||
+        (data?.orders?.orders as OrderInfo[]) ||
+        [];
+      const newOrders: OrderInfo[] = (ordersRaw || []).map((order: OrderInfo) => {
         const normalizedStatus = normalizeWorkflowStatus(
           order.workflow_status,
           order.workflow_status_legacy

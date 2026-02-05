@@ -1,4 +1,4 @@
-type RoleKey = 'waiter' | 'cashier' | 'chef' | 'admin' | 'guest';
+type RoleKey = 'waiter' | 'cashier' | 'chef' | 'admin' | 'system';
 
 export interface RoleCapabilities {
     canCharge: boolean;
@@ -85,18 +85,18 @@ const ROLE_CAPABILITIES: Record<RoleKey, RoleCapabilities> = {
         canViewPaid: true,
         canViewActive: true
     },
-    guest: {
-        canCharge: false,
-        canReprint: false,
-        canCancel: false,
-        canEditOrder: false,
-        canMoveTable: false,
-        canAdvanceKitchen: false,
-        canDiscount: false,
-        canReopen: false,
-        canCommandItems: false,
-        canViewPaid: false,
-        canViewActive: false
+    system: {
+        canCharge: true,
+        canReprint: true,
+        canCancel: true,
+        canEditOrder: true,
+        canMoveTable: true,
+        canAdvanceKitchen: true,
+        canDiscount: true,
+        canReopen: true,
+        canCommandItems: true,
+        canViewPaid: true,
+        canViewActive: true
     }
 };
 
@@ -105,17 +105,18 @@ const ROLE_THEMES: Record<RoleKey, RoleTheme> = {
     cashier: { primary: '#2E7D32', hover: '#43A047', accent: '#A5D6A7', contrast: '#FFFFFF' },
     chef: { primary: '#1565C0', hover: '#1E88E5', accent: '#90CAF9', contrast: '#FFFFFF' },
     admin: { primary: '#263238', hover: '#37474F', accent: '#B0BEC5', contrast: '#FFFFFF' },
-    guest: { primary: '#6B7280', hover: '#4B5563', accent: '#E5E7EB', contrast: '#FFFFFF' }
+    system: { primary: '#263238', hover: '#37474F', accent: '#B0BEC5', contrast: '#FFFFFF' }
 };
 
 function mapToRoleKey(role?: string | null): RoleKey {
-    if (!role) return 'guest';
+    if (!role) return 'waiter';
     const normalized = role.toLowerCase();
-    if (['super_admin', 'admin', 'system'].includes(normalized)) return 'admin';
-    if (['chef', 'cook'].includes(normalized)) return 'chef';
+    if (normalized === 'system') return 'system';
+    if (normalized === 'admin') return 'admin';
+    if (normalized === 'chef') return 'chef';
     if (normalized === 'cashier') return 'cashier';
     if (normalized === 'waiter') return 'waiter';
-    return 'guest';
+    return 'waiter';
 }
 
 export function normalizeRole(role?: string | null): RoleKey {
@@ -129,7 +130,7 @@ export function getCapabilitiesForRole(role?: string | null): RoleCapabilities {
 
 export function applyRoleTheme(role?: string | null): void {
     const key = mapToRoleKey(role);
-    const theme = ROLE_THEMES[key] || ROLE_THEMES.guest;
+    const theme = ROLE_THEMES[key] || ROLE_THEMES.waiter;
     const root = document.documentElement;
     root.setAttribute('data-role-theme', key);
     Object.entries(theme).forEach(([token, value]) => {

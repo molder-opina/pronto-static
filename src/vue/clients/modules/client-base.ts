@@ -278,7 +278,7 @@ function checkWaiterCallStatus(callId: number, button?: HTMLElement | null): voi
   const interval = window.setInterval(async () => {
     attempts += 1;
     try {
-      const response = await fetch(`/api/waiter-calls/${callId}/status`);
+      const response = await fetch(`/api/notifications/waiter/status/${callId}`);
       const data = await response.json();
       if (data.status === 'confirmed') {
         if (sseUnsubscribe) sseUnsubscribe();

@@ -1,4 +1,4 @@
-import { formatCurrency, escapeHtml } from "@shared/lib";
+import { deriveSessionsFromOrders, formatCurrency, escapeHtml } from "@shared/lib";
 
 import { getCapabilitiesForRole, type RoleCapabilities } from "./role-context";
 import { isValidEmailFormat, normalizeCustomerEmail } from "./email-utils";
@@ -34,6 +34,18 @@ function saveItemsPerPage(value: number): void {
   }
 }
 
+function groupOrdersBySessionId(orders: any[]): Map<number, any[]> {
+  const byId = new Map<number, any[]>();
+  for (const order of orders || []) {
+    const sessionId = Number(order?.session_id);
+    if (!Number.isFinite(sessionId)) continue;
+    const bucket = byId.get(sessionId);
+    if (bucket) bucket.push(order);
+    else byId.set(sessionId, [order]);
+  }
+  return byId;
+}
+
 interface PendingSession {
   id: number;
   table_number?: string | null;
@@ -62,14 +74,6 @@ interface ClosedSession {
   total_amount?: number;
   closed_at: string;
 }
-
-type SessionResponse<T> = {
-  status: string;
-  message?: string;
-  sessions?: T[];
-  closed_sessions?: T[];
-  data?: T[];
-};
 
 export function initSessionsManager(): void {
   document.addEventListener("DOMContentLoaded", () => {
@@ -239,6 +243,16 @@ class SessionsManager {
     return (data && data.data ? data.data : data) as T;
   }
 
+  private unwrapOrdersPayload(data: any): { orders: any[]; warnings: string[] } {
+    const payload = this.unwrapResponse<any>(data);
+    const orders: any[] =
+      payload?.orders || payload?.data?.orders || payload?.data || [];
+    const warnings: string[] = Array.isArray(payload?.warnings)
+      ? payload.warnings
+      : [];
+    return { orders, warnings };
+  }
+
   // Pending sessions
   private async loadPendingSessions(): Promise<void> {
     if (!this.pendingList) return;
@@ -246,13 +260,84 @@ class SessionsManager {
       createFragment('<p class="loading">Cargando sesiones pendientes...</p>'),
     );
     try {
-      const data = await this.requestJSON<SessionResponse<PendingSession>>(
-        "/api/sessions/awaiting-payment",
-      );
-      const payload =
-        this.unwrapResponse<SessionResponse<PendingSession>>(data);
-      const sessions = payload.sessions || [];
-      this.renderPendingSessions(sessions);
+      // "Estado de sesion" derivado desde ordenes (source of truth = workflow_status).
+      // Evita endpoints /api/sessions/* para listar estados.
+      const params = new URLSearchParams();
+      for (const status of [
+        "new",
+        "queued",
+        "preparing",
+        "ready",
+        "delivered",
+        "awaiting_payment",
+      ]) {
+        params.append("status", status);
+      }
+      const endpoint = `/api/orders?${params.toString()}`;
+      const data = await this.requestJSON(endpoint);
+      const { orders, warnings } = this.unwrapOrdersPayload(data);
+      if (warnings.length) console.warn("[Sessions] warnings", warnings);
+
+      const derivedList = deriveSessionsFromOrders(orders);
+      const derivedById = new Map<number, ReturnType<typeof deriveSessionsFromOrders>[number]>();
+      for (const s of derivedList) derivedById.set(s.session_id, s);
+      const pending: PendingSession[] = [];
+
+      for (const [sessionId, sessionOrders] of groupOrdersBySessionId(orders)) {
+        const sessionInfo = derivedById.get(sessionId);
+        if (!sessionInfo) continue;
+
+        const hasAwaitingPayment = sessionOrders.some(
+          (o) => String(o?.workflow_status || "") === "awaiting_payment",
+        );
+        const hasAwaitingTip = sessionOrders.some(
+          (o) => String(o?.payment_status || "") === "awaiting_tip",
+        );
+        if (!hasAwaitingPayment && !hasAwaitingTip) continue;
+
+        const first = sessionOrders[0] || {};
+        const sessionObj = first?.session || {};
+        const totals = sessionObj?.totals || {};
+
+        pending.push({
+          id: sessionId,
+          table_number: sessionObj?.table_number || null,
+          customer_name: first?.customer?.name || null,
+          orders_count: sessionOrders.length,
+          delivered_orders_count: sessionOrders.filter(
+            (o) => String(o?.workflow_status || "") === "delivered",
+          ).length,
+          status: hasAwaitingTip ? "awaiting_tip" : "awaiting_payment",
+          check_requested_at: sessionObj?.check_requested_at || null,
+          subtotal:
+            typeof totals?.subtotal === "number"
+              ? totals.subtotal
+              : Number(first?.subtotal ?? 0),
+          tax_amount:
+            typeof totals?.tax_amount === "number"
+              ? totals.tax_amount
+              : Number(first?.tax_amount ?? 0),
+          tip_amount:
+            typeof totals?.tip_amount === "number"
+              ? totals.tip_amount
+              : Number(first?.tip_amount ?? 0),
+          total_amount:
+            typeof totals?.total_amount === "number"
+              ? totals.total_amount
+              : Number(first?.total_amount ?? 0),
+        });
+      }
+
+      // Most recent activity first (fallback created_at)
+      pending.sort((a, b) => {
+        const aSid = a.id;
+        const bSid = b.id;
+        const aLast = derivedById.get(aSid)?.last_activity_at || "";
+        const bLast = derivedById.get(bSid)?.last_activity_at || "";
+        return String(bLast).localeCompare(String(aLast));
+      });
+
+      this.renderPendingSessions(pending);
     } catch (error) {
       console.error("[Sessions] pending", error);
       this.pendingList.replaceChildren(
@@ -415,15 +500,68 @@ class SessionsManager {
         "";
       const isCashier = normalizedRole === "cashier";
       const isAdmin =
-        normalizedRole === "super_admin" || normalizedRole === "admin";
-      const endpoint =
-        isCashier || isAdmin
-          ? "/api/sessions/closed"
-          : "/api/sessions/paid-recent";
-      const data =
-        await this.requestJSON<SessionResponse<ClosedSession>>(endpoint);
-      const payload = this.unwrapResponse<SessionResponse<ClosedSession>>(data);
-      this.closedData = payload.closed_sessions || payload.sessions || [];
+        normalizedRole === "system" || normalizedRole === "admin";
+      // Paid/closed status lives on orders, not sessions. We build a session-like list from orders.
+      const endpoint = "/api/orders?status=paid&status=cancelled";
+      const data = await this.requestJSON(endpoint);
+      const { orders, warnings } = this.unwrapOrdersPayload(data);
+      if (warnings.length) console.warn("[Sessions] warnings", warnings);
+
+      const sessionsById = new Map<number, ClosedSession>();
+      for (const order of orders) {
+        const status = String(order?.workflow_status || "");
+        if (status !== "paid" && status !== "cancelled") continue;
+
+        const sessionId = Number(order?.session_id);
+        if (!Number.isFinite(sessionId)) continue;
+
+        const sessionObj = order?.session || {};
+        const totals = sessionObj?.totals || {};
+        const history = Array.isArray(order?.history) ? order.history : [];
+        const paidHistoryTs =
+          history
+            .filter((e: any) => e?.status === "paid" && e?.changed_at)
+            .map((e: any) => String(e.changed_at))
+            .sort()
+            .slice(-1)[0] || "";
+        const cancelledHistoryTs =
+          history
+            .filter((e: any) => e?.status === "cancelled" && e?.changed_at)
+            .map((e: any) => String(e.changed_at))
+            .sort()
+            .slice(-1)[0] || "";
+        const movementAt =
+          status === "paid"
+            ? order?.paid_at || paidHistoryTs || order?.updated_at || order?.created_at
+            : cancelledHistoryTs || order?.updated_at || order?.created_at;
+        const closedAt = movementAt;
+
+        const existing = sessionsById.get(sessionId) as any;
+        const orderIds = Array.isArray(existing?.order_ids) ? existing.order_ids : [];
+        orderIds.push(Number(order?.id));
+
+        const totalAmount =
+          typeof totals?.total_amount === "number"
+            ? totals.total_amount
+            : Number(order?.total_amount ?? 0);
+
+        sessionsById.set(sessionId, {
+          ...(existing || {}),
+          id: sessionId,
+          table_number: existing?.table_number || sessionObj?.table_number || "N/A",
+          customer_name: existing?.customer_name || order?.customer?.name || "Cliente",
+          customer_email: existing?.customer_email || order?.customer?.email || "",
+          customer_phone: existing?.customer_phone || order?.customer?.phone || "",
+          payment_method: existing?.payment_method || order?.payment_method || "",
+          total_amount: Number(existing?.total_amount ?? totalAmount),
+          orders_count: (existing?.orders_count ?? 0) + 1,
+          order_ids: orderIds,
+          closed_at: existing?.closed_at || closedAt,
+          status: existing?.status || (status === "cancelled" ? "cancelled" : "paid"),
+        } as any);
+      }
+
+      this.closedData = Array.from(sessionsById.values());
       this.closedState.page = 1;
       this.renderClosedSessions();
     } catch (error) {

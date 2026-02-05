@@ -101,6 +101,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import PaginationControls from '../../shared/components/PaginationControls.vue'
+import { deriveSessionsFromOrders } from '@shared/lib'
 
 interface ClosedSession {
   id: number
@@ -136,11 +137,74 @@ const paginatedSessions = computed(() => {
 async function loadClosedSessions() {
   loading.value = true
   try {
-    const response = await fetch('/api/sessions/closed')
+    // Paid/closed status lives on orders, not sessions. Build a session-like list from orders.
+    const response = await fetch('/api/orders?status=paid&status=cancelled')
     const data = await response.json()
-    if (data && data.closed_sessions) {
-      closedSessions.value = data.closed_sessions
+    const orders = data?.data?.orders || data?.orders || data?.data || []
+    const derivedList = deriveSessionsFromOrders(orders)
+    const derivedById = new Map<number, any>()
+    for (const s of derivedList) derivedById.set(Number(s.session_id), s)
+
+    const byId = new Map<number, any>()
+    for (const order of orders) {
+      const status = String(order?.workflow_status || '')
+      if (status !== 'paid' && status !== 'cancelled') continue
+      const sessionId = Number(order?.session_id)
+      if (!Number.isFinite(sessionId)) continue
+      const sessionObj = order?.session || {}
+      const totals = sessionObj?.totals || {}
+      const history = Array.isArray(order?.history) ? order.history : []
+      const paidHistoryTs =
+        history
+          .filter((e: any) => e?.status === 'paid' && e?.changed_at)
+          .map((e: any) => String(e.changed_at))
+          .sort()
+          .slice(-1)[0] || ''
+      const cancelledHistoryTs =
+        history
+          .filter((e: any) => e?.status === 'cancelled' && e?.changed_at)
+          .map((e: any) => String(e.changed_at))
+          .sort()
+          .slice(-1)[0] || ''
+      const movementAt =
+        status === 'paid'
+          ? order?.paid_at || paidHistoryTs || order?.updated_at || order?.created_at
+          : cancelledHistoryTs || order?.updated_at || order?.created_at
+      const closedAt = movementAt
+      const existing = byId.get(sessionId) || {}
+      const orderIds = Array.isArray(existing.order_ids) ? existing.order_ids : []
+      orderIds.push(Number(order?.id))
+      const totalAmount =
+        typeof totals?.total_amount === 'number' ? totals.total_amount : Number(order?.total_amount ?? 0)
+      byId.set(sessionId, {
+        ...existing,
+        id: sessionId,
+        table_number: existing.table_number || sessionObj?.table_number || 'N/A',
+        customer_name: existing.customer_name || order?.customer?.name || 'Cliente',
+        customer_email: existing.customer_email || order?.customer?.email || '',
+        payment_method: existing.payment_method || order?.payment_method || '',
+        payment_reference: existing.payment_reference || order?.payment_reference || '',
+        subtotal: Number(existing.subtotal ?? (typeof totals?.subtotal === 'number' ? totals.subtotal : Number(order?.subtotal ?? 0))),
+        tax_amount: Number(existing.tax_amount ?? (typeof totals?.tax_amount === 'number' ? totals.tax_amount : Number(order?.tax_amount ?? 0))),
+        tip_amount: Number(existing.tip_amount ?? (typeof totals?.tip_amount === 'number' ? totals.tip_amount : Number(order?.tip_amount ?? 0))),
+        total_amount: Number(existing.total_amount ?? totalAmount),
+        orders_count: (existing.orders_count ?? 0) + 1,
+        order_ids: orderIds,
+        closed_at: existing.closed_at || closedAt,
+        status: existing.status || (status === 'cancelled' ? 'cancelled' : 'paid'),
+      })
     }
+    const items: ClosedSession[] = Array.from(byId.values())
+    items.sort((a, b) => {
+      const aKey = derivedById.get(a.id)?.last_activity_at || a.closed_at || ''
+      const bKey = derivedById.get(b.id)?.last_activity_at || b.closed_at || ''
+      return String(bKey).localeCompare(String(aKey))
+    })
+    for (const s of items) {
+      const warnings = derivedById.get(s.id)?.warnings || []
+      if (Array.isArray(warnings) && warnings.length) console.warn('[ClosedSessions] warnings', s.id, warnings)
+    }
+    closedSessions.value = items
   } catch (error) {
     console.error('Error loading closed sessions:', error)
   } finally {

@@ -150,7 +150,7 @@ export class RealtimeClient {
 }
 
 export function initRealtimeGlobal(): void {
-    const endpoint = window.REALTIME_EVENTS_ENDPOINT || '/api/realtime/events';
+    const endpoint = window.REALTIME_EVENTS_ENDPOINT || '/api/realtime/orders';
     const interval = Number(
         window.REALTIME_POLL_INTERVAL_MS ||
         (window.APP_SETTINGS && window.APP_SETTINGS.realtime_poll_interval_ms) ||

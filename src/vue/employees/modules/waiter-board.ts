@@ -1,4 +1,5 @@
 import { requestJSON } from '../core/http';
+import { deriveSessionsFromOrders } from '@shared/lib/session_state';
 import { isValidEmailFormat, normalizeCustomerEmail } from './email-utils';
 import {
   getCapabilitiesForRole,
@@ -125,6 +126,7 @@ class WaiterBoard {
   private ordersPollingInterval?: number;
   private realtimeUnsubscribe?: () => void;
   private realtimeRefreshTimer?: number;
+  private processedOrderEvents: Set<string> = new Set();
   private soundManager: WaiterSoundManager = new WaiterSoundManager();
 
   // New properties for tabs and tracking (starred orders)
@@ -436,9 +438,9 @@ class WaiterBoard {
   }
 
   private initializeSupervisorCallButton(): void {
-    const btn = document.getElementById('call-supervisor-btn');
-    const statusEl = document.getElementById('supervisor-call-status');
-    const statusDetails = document.getElementById('supervisor-call-status-details');
+    const btn = document.getElementById('call-admin-btn');
+    const statusEl = document.getElementById('admin-call-status');
+    const statusDetails = document.getElementById('admin-call-status-details');
 
     if (!btn) return;
 
@@ -458,7 +460,7 @@ class WaiterBoard {
       );
 
       try {
-        const response = await fetch('/api/waiter-calls/supervisor/call', {
+        const response = await fetch('/api/notifications/admin/call', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
@@ -498,10 +500,10 @@ class WaiterBoard {
             btn.classList.add('btn--primary');
           }, 5000);
         } else {
-          throw new Error(result.message || result.error || 'Error al llamar supervisor');
+          throw new Error(result.message || result.error || 'Error al llamar administrador');
         }
       } catch (error) {
-        console.error('[WAITER] Error calling supervisor:', error);
+        console.error('[WAITER] Error calling admin:', error);
         // Fallback optimista: informamos al usuario y dejamos botón listo
         btn.replaceChildren(
           createFragment(`
@@ -1657,11 +1659,12 @@ class WaiterBoard {
 
   private async loadPendingCalls(): Promise<void> {
     try {
-      const response = await fetch('/api/waiter-calls/pending');
+      const response = await fetch('/api/notifications/waiter/pending');
       if (!response.ok) throw new Error('Error al cargar llamadas');
       const data = await response.json();
-      this.pendingCalls = Array.isArray(data.waiter_calls)
-        ? data.waiter_calls.map((item: any) => this.normalizeWaiterCall(item)).filter(Boolean)
+      const payload = data?.data ?? data;
+      this.pendingCalls = Array.isArray(payload?.waiter_calls)
+        ? payload.waiter_calls.map((item: any) => this.normalizeWaiterCall(item)).filter(Boolean)
         : [];
       this.updateNotificationsBadge();
       this.renderNotifications();
@@ -1751,7 +1754,7 @@ class WaiterBoard {
       return;
     }
     try {
-      const response = await fetch(`/api/waiter-calls/${callId}/confirm`, {
+      const response = await fetch(`/api/notifications/waiter/confirm/${callId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -1845,29 +1848,6 @@ class WaiterBoard {
         // Then refresh from server to get complete state
         this.scheduleRealtimeRefresh(500, true);
       });
-      this.socket.on('sessions.status_changed', (data: any) => {
-        // Update session state when session status changes
-        if (data && data.session_id) {
-          const sessionData: SessionData = {
-            id: data.session_id,
-            status: data.status,
-            table_number: data.table_number || null,
-            notes: null,
-          };
-          this.updateSharedSessionState(sessionData);
-          // Refresh orders to show payment buttons if needed
-          this.ordersTable
-            ?.querySelectorAll<HTMLTableRowElement>(`tr[data-session-id="${data.session_id}"]`)
-            .forEach((row) => {
-              const orderId = Number(row.dataset.orderId);
-              const order = this.orders.get(orderId); // Use the new Map
-              if (order) {
-                order.session = { ...order.session, ...sessionData };
-                this.renderRow(row, order);
-              }
-            });
-        }
-      });
       this.socket.on('sessions.paid', (data: any) => {
         if (!data?.session_id) return;
         const sessionData: SessionData = {
@@ -1944,6 +1924,13 @@ class WaiterBoard {
     this.realtimeUnsubscribe = window.ProntoRealtime.subscribe((event: any) => {
       if (!event?.type) return;
       const payload = event.payload || {};
+      const eventId = event.event_id || `${event.type}-${event.timestamp || ''}`;
+      if (this.processedOrderEvents.has(eventId)) return;
+      this.processedOrderEvents.add(eventId);
+      if (this.processedOrderEvents.size > 500) {
+        const arr = Array.from(this.processedOrderEvents);
+        this.processedOrderEvents = new Set(arr.slice(-250));
+      }
       if (event.type === 'orders.status_changed') {
         const orderId = Number(payload.order_id || payload.orderId || payload.id);
         const status = payload.status || payload.workflow_status;
@@ -1962,19 +1949,7 @@ class WaiterBoard {
         this.scheduleRealtimeRefresh(500, true);
         return;
       }
-      if (event.type === 'sessions.status_changed') {
-        if (payload.session_id) {
-          const sessionData: SessionData = {
-            id: payload.session_id,
-            status: payload.status,
-            table_number: payload.table_number || null,
-            notes: null,
-          };
-          this.updateSharedSessionState(sessionData);
-          this.refreshRowsForSession(payload.session_id);
-          this.scheduleRealtimeRefresh(400, false);
-        }
-      }
+      return;
     });
   }
 
@@ -3119,30 +3094,61 @@ class WaiterBoard {
     if (!this.paidSessionsTable) return;
 
     try {
-      const response = await fetch('/api/sessions/paid-recent');
+      // Paid/closed status lives on orders, not sessions.
+      const response = await fetch('/api/orders?status=paid&status=cancelled');
       if (!response.ok) {
         const errorPayload = await response.json().catch(() => ({}));
         const msg =
-          errorPayload?.message || errorPayload?.error || 'Error al cargar sesiones pagadas';
+          errorPayload?.message || errorPayload?.error || 'Error al cargar órdenes';
         throw new Error(msg);
       }
 
-      const data = await response.json();
-      const sessions = data.sessions || [];
-      const sanitizedSessions = sessions.filter((session: any) => {
-        const hasId = Number.isFinite(Number(session?.id));
-        const hasTotal = typeof session?.total_amount !== 'undefined';
-        session.customer_email = normalizeCustomerEmail(session?.customer_email);
-        if (!hasId || !hasTotal) {
-          console.warn('[WAITER] Sesión pagada ignorada por datos incompletos', session);
-          return false;
-        }
-        return true;
-      });
+      const data = await response.json().catch(() => ({} as any));
+      const orders: WaiterOrder[] =
+        (data?.data?.orders as WaiterOrder[]) ||
+        (data?.orders as WaiterOrder[]) ||
+        (data?.data as WaiterOrder[]) ||
+        [];
 
-      const filteredSessions = sanitizedSessions.filter((session: any) =>
-        this.isWithinDateFilter(session.closed_at || session.created_at)
+      const derived = deriveSessionsFromOrders(
+        orders.map((o: any) => ({
+          id: o.id,
+          session_id: Number(o.session_id),
+          workflow_status: o.workflow_status,
+          paid_at: o.paid_at,
+          updated_at: o.updated_at,
+          created_at: o.created_at,
+        })),
+        { paidRecentMinutes: window.APP_DATA?.paid_orders_window_minutes || 15 }
       );
+
+      const filteredSessions = derived
+        .filter((s) => s.state === 'paid')
+        .map((s) => {
+          const first = orders.find((o: any) => Number(o.session_id) === s.session_id) as any;
+          const sessionObj = first?.session || {};
+          const totals = sessionObj?.totals || {};
+          const orderIds = s.orders.map((o) => Number((o as any).id)).filter(Number.isFinite);
+          return {
+            id: s.session_id,
+            table_number: sessionObj?.table_number || 'N/A',
+            customer_name: first?.customer?.name || 'Cliente',
+            customer_email: normalizeCustomerEmail(first?.customer?.email || ''),
+            customer_phone: first?.customer?.phone || '',
+            payment_method: first?.payment_method || sessionObj?.payment_method,
+            total_amount:
+              typeof totals?.total_amount === 'number'
+                ? totals.total_amount
+                : Number(first?.total_amount ?? 0),
+            orders_count: s.orders.length,
+            order_ids: orderIds,
+            closed_at: s.last_activity_at,
+            created_at: first?.created_at,
+            paid_recent: s.paid_recent,
+            warnings: s.warnings,
+          };
+        })
+        .filter((session: any) => this.isWithinDateFilter(session.closed_at || session.created_at));
 
       if (filteredSessions.length === 0) {
         this.setTabBadge('paid-count', 0);
@@ -3631,7 +3637,11 @@ class WaiterBoard {
       }
 
       const data = await response.json();
-      const newOrders: WaiterOrder[] = data.orders || [];
+      const newOrders: WaiterOrder[] =
+        (data?.data?.orders as WaiterOrder[]) ||
+        (data?.orders as WaiterOrder[]) ||
+        (data?.data as WaiterOrder[]) ||
+        [];
 
       // Clear existing orders
       this.orders.clear();
@@ -3819,7 +3829,12 @@ class WaiterBoard {
         if (!response.ok) return;
 
         const data = await response.json();
-        const newOrders: WaiterOrder[] = (data.orders || []).map((order: WaiterOrder) => {
+        const ordersRaw: WaiterOrder[] =
+          (data?.data?.orders as WaiterOrder[]) ||
+          (data?.orders as WaiterOrder[]) ||
+          (data?.data as WaiterOrder[]) ||
+          [];
+        const newOrders: WaiterOrder[] = (ordersRaw || []).map((order: WaiterOrder) => {
           const normalized = normalizeWorkflowStatus(
             order.workflow_status,
             order.workflow_status_legacy

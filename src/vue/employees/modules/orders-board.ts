@@ -424,8 +424,13 @@ async function handleActionButton(
     try {
       const response = await fetch('/api/orders?include_closed=true&include_delivered=true');
       if (response.ok) {
-        const data = (await response.json()) as { orders: ApiOrderResponse[] };
-        const updatedOrderData = data.orders.find((o) => o.id === order.id);
+        const data = await response.json().catch(() => ({} as any));
+        const orders: ApiOrderResponse[] =
+          (data?.data?.orders as ApiOrderResponse[]) ||
+          (data?.orders as ApiOrderResponse[]) ||
+          (data?.data as ApiOrderResponse[]) ||
+          [];
+        const updatedOrderData = orders.find((o) => o.id === order.id);
         if (updatedOrderData) {
           const normalizedStatus = normalizeWorkflowStatus(
             updatedOrderData.workflow_status,
@@ -597,8 +602,13 @@ async function handleTableActionButton(
     try {
       const response = await fetch('/api/orders?include_closed=true&include_delivered=true');
       if (response.ok) {
-        const data = (await response.json()) as { orders: ApiOrderResponse[] };
-        const updatedOrderData = data.orders.find((o) => o.id === order.id);
+        const data = await response.json().catch(() => ({} as any));
+        const orders: ApiOrderResponse[] =
+          (data?.data?.orders as ApiOrderResponse[]) ||
+          (data?.orders as ApiOrderResponse[]) ||
+          (data?.data as ApiOrderResponse[]) ||
+          [];
+        const updatedOrderData = orders.find((o) => o.id === order.id);
         if (updatedOrderData) {
           const normalizedStatus = normalizeWorkflowStatus(
             updatedOrderData.workflow_status,
@@ -785,8 +795,13 @@ export async function updateOrderStatusFromEvent(
   try {
     const response = await fetch('/api/orders?include_closed=true&include_delivered=true');
     if (response.ok) {
-      const data = (await response.json()) as { orders: ApiOrderResponse[] };
-      const orderData = data.orders.find((o) => o.id === orderId);
+      const data = await response.json().catch(() => ({} as any));
+      const orders: ApiOrderResponse[] =
+        (data?.data?.orders as ApiOrderResponse[]) ||
+        (data?.orders as ApiOrderResponse[]) ||
+        (data?.data as ApiOrderResponse[]) ||
+        [];
+      const orderData = orders.find((o) => o.id === orderId);
       if (orderData) {
         const normalizedStatus = normalizeWorkflowStatus(
           orderData.workflow_status,
