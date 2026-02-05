@@ -77,6 +77,12 @@ export const cartStore = reactive({
 });
 
 // Bridge to Legacy DOM & Events
+// Bridge to Legacy DOM & Events
+import { CartRenderer } from '../modules/cart-renderer';
+
+// Singleton renderer
+let renderer: CartRenderer | null = null;
+
 const updateLegacyDom = () => {
   const count = cartStore.totalItems;
   const total = cartStore.totalPrice;
@@ -95,7 +101,13 @@ const updateLegacyDom = () => {
     }
   }
 
-  // 2. Dispatch Event for sticky bar
+  // 2. Render Side Cart Panel
+  if (!renderer) {
+    renderer = new CartRenderer();
+  }
+  renderer.render(cartStore.items);
+
+  // 3. Dispatch Event for sticky bar
   window.dispatchEvent(new CustomEvent('cart-updated', {
     detail: { count, total }
   }));
@@ -106,6 +118,10 @@ watch(() => cartStore.items, updateLegacyDom, { deep: true });
 
 // Initial sync when DOM is ready
 const initDomSync = () => {
+  // Ensure renderer is initialized
+  if (!renderer) {
+    renderer = new CartRenderer();
+  }
   updateLegacyDom();
   cartStore.checkOldItems();
 };
