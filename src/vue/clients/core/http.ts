@@ -43,7 +43,7 @@ export async function requestJSON<TResponse = unknown, TBody = unknown>(
       const response = await fetch(endpoint, {
         method,
         headers: body ? { 'Content-Type': 'application/json', ...headers } : headers,
-        credentials: 'same-origin',
+        credentials: 'include',
         body: body ? JSON.stringify(body) : undefined,
       });
 

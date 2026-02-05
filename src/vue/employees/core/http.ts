@@ -5,23 +5,6 @@ export interface RequestOptions<TBody = unknown> {
 }
 
 /**
- * Detecta el scope actual desde la URL del navegador.
- * Retorna el path del scope (ej: "/waiter", "/chef", "/cashier", "/admin") o null.
- */
-function getCurrentScope(): string | null {
-  const path = window.location.pathname;
-  const scopePrefixes = ['/waiter', '/chef', '/cashier', '/admin', '/system'];
-
-  for (const prefix of scopePrefixes) {
-    if (path.startsWith(prefix)) {
-      return prefix;
-    }
-  }
-
-  return null;
-}
-
-/**
  * Verifica si la respuesta indica una sesión inválida (401/403) y redirige al login.
  * Esta función puede ser llamada desde cualquier lugar que use fetch directamente.
  * @param response - La respuesta de fetch a verificar
@@ -56,16 +39,8 @@ export async function authenticatedFetch(
   input: RequestInfo | URL,
   init?: RequestInit
 ): Promise<Response> {
-  const currentScope = getCurrentScope();
-  let url = typeof input === 'string' ? input : input.toString();
-
-  // Rewrite /api/* to /<scope>/api/* for scoped API calls
-  if (currentScope && url.startsWith('/api/')) {
-    url = `${currentScope}${url}`;
-    input = url;
-  }
-
-  const response = await fetch(input, init);
+  const finalInit: RequestInit = { credentials: 'include', ...(init || {}) };
+  const response = await fetch(input, finalInit);
   checkAuthAndRedirect(response);
   return response;
 }
@@ -74,29 +49,37 @@ export async function requestJSON<TResponse = unknown, TBody = unknown>(
   endpoint: string,
   { method = 'GET', body, headers = {} }: RequestOptions<TBody> = {}
 ): Promise<TResponse> {
-  // Rewrite /api/* to /<scope>/api/* for scoped API calls
-  const currentScope = getCurrentScope();
-  let finalEndpoint = endpoint;
-
-  if (currentScope && endpoint.startsWith('/api/')) {
-    finalEndpoint = `${currentScope}${endpoint}`;
-  }
+  const finalEndpoint = endpoint;
 
   // Add CSRF token for non-GET requests
   const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-  const requestHeaders: Record<string, string> = body
-    ? { 'Content-Type': 'application/json', ...headers }
-    : { ...headers };
+  const upperMethod = method.toUpperCase();
+  const isMutating = !['GET', 'HEAD', 'OPTIONS'].includes(upperMethod);
+  if (isMutating && !csrfToken) {
+    throw new Error('CSRF token missing (meta[name="csrf-token"])');
+  }
 
-  if (csrfToken && !['GET', 'HEAD', 'OPTIONS'].includes(method.toUpperCase())) {
+  const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
+  const isStringBody = typeof body === 'string';
+
+  const requestHeaders: Record<string, string> =
+    body && !isFormData ? { 'Content-Type': 'application/json', ...headers } : { ...headers };
+
+  if (csrfToken && isMutating) {
     requestHeaders['X-CSRFToken'] = csrfToken;
   }
 
   const response = await fetch(finalEndpoint, {
     method,
     headers: requestHeaders,
-    body: body ? JSON.stringify(body) : undefined,
-    credentials: 'same-origin',
+    body: body
+      ? isFormData
+        ? (body as unknown as BodyInit)
+        : isStringBody
+          ? (body as unknown as BodyInit)
+          : JSON.stringify(body)
+      : undefined,
+    credentials: 'include',
   });
 
   let data: unknown = {};
@@ -115,6 +98,19 @@ export async function requestJSON<TResponse = unknown, TBody = unknown>(
     const message =
       (data as { error?: string }).error || `Error ${response.status}: ${response.statusText}`;
     throw new Error(message);
+  }
+
+  // Canon: pronto_shared.serializers.success_response wraps payload in {status,data,error}.
+  // Back-compat: some callers expect `response.data.*`, others expect payload flattened at top-level.
+  if (typeof data === 'object' && data !== null) {
+    const obj = data as Record<string, unknown>;
+    if (obj.status === 'success' && 'data' in obj) {
+      const payload = obj.data as unknown;
+      if (typeof payload === 'object' && payload !== null && !Array.isArray(payload)) {
+        return { ...(payload as Record<string, unknown>), status: 'success', data: payload } as TResponse;
+      }
+      return payload as TResponse;
+    }
   }
 
   return data as TResponse;

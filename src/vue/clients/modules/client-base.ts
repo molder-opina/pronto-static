@@ -422,7 +422,7 @@ async function validateAndCleanSession(): Promise<void> {
     // and return current session state
     const response = await fetch('/api/session/validate', {
       method: 'GET',
-      credentials: 'same-origin', // Include cookies
+      credentials: 'include', // Include cookies
       headers: {
         Accept: 'application/json',
       },
