@@ -1,4 +1,5 @@
 import { formatCurrency } from "@shared/lib";
+import { requestJSON } from "../core/http";
 
 interface ModifierOption {
   id: number;
@@ -126,8 +127,8 @@ class ModifiersManager {
   private async loadGroups(): Promise<void> {
     try {
       (window.EmployeeLoading || window.GlobalLoading)?.start?.();
-      const response = await fetch("/api/modifiers");
-      const data = await response.json();
+      (window.EmployeeLoading || window.GlobalLoading)?.start?.();
+      const data = await requestJSON<{ modifier_groups: ModifierGroup[] }>("/api/modifiers");
       this.groups = data.modifier_groups || [];
       this.render();
       this.renderGroupSelector();
@@ -241,8 +242,8 @@ class ModifiersManager {
                     </div>
                     <div class="modifiers-list__grid">
                         ${group.modifiers
-                          .map(
-                            (mod) => `
+        .map(
+          (mod) => `
                                     <article class="modifier-card" data-modifier-id="${mod.id}">
                                         <div class="modifier-card__main">
                                             <h5>${mod.name}</h5>
@@ -255,8 +256,8 @@ class ModifiersManager {
                                             <small>Orden ${mod.order ?? 0}</small>
                                         </div>
                                     </article>`,
-                          )
-                          .join("")}
+        )
+        .join("")}
                     </div>
                 </div>`
       : '<p class="empty-state">Aún no hay modificadores en este grupo.</p>';
@@ -446,14 +447,10 @@ class ModifiersManager {
       : "/api/modifiers/groups";
     const method = this.editingGroupId ? "PUT" : "POST";
     try {
-      const response = await fetch(endpoint, {
+      await requestJSON(endpoint, {
         method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: payload,
       });
-      const data = await response.json();
-      if (!response.ok)
-        throw new Error(data.error || "Error al guardar el grupo");
       showToast(
         this.editingGroupId ? "Grupo actualizado" : "Grupo creado",
         "success",
@@ -490,8 +487,8 @@ class ModifiersManager {
     (document.getElementById(
       "modifier-available",
     ) as HTMLInputElement | null)!.checked = modifier
-      ? !!modifier.is_available
-      : true;
+        ? !!modifier.is_available
+        : true;
     const title = document.getElementById("modifier-drawer-title");
     if (title) {
       title.textContent = modifier ? "Editar aditamento" : "Nuevo aditamento";
@@ -550,14 +547,10 @@ class ModifiersManager {
       : "/api/modifiers";
     const method = this.editingModifierId ? "PUT" : "POST";
     try {
-      const response = await fetch(endpoint, {
+      await requestJSON(endpoint, {
         method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: payload,
       });
-      const data = await response.json();
-      if (!response.ok)
-        throw new Error(data.error || "Error al guardar el aditamento");
       showToast(
         this.editingModifierId ? "Aditamento actualizado" : "Aditamento creado",
         "success",

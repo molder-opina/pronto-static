@@ -174,6 +174,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { requestJSON } from '../core/http'
 
 interface FeedbackStats {
   average_rating: number
@@ -236,13 +237,10 @@ const loadData = async () => {
   error.value = null
 
   try {
-    const [statsRes, employeesRes] = await Promise.all([
-      fetch(`/api/feedback/stats/overall?days=${period.value}`),
-      fetch(`/api/feedback/stats/top-employees?days=${period.value}&limit=5`)
+    const [statsResult, employeesResult] = await Promise.all([
+      requestJSON<any>(`/api/feedback/stats/overall?days=${period.value}`),
+      requestJSON<any>(`/api/feedback/stats/top-employees?days=${period.value}&limit=5`)
     ])
-
-    const statsResult = await statsRes.json()
-    const employeesResult = await employeesRes.json()
 
     if (statsResult.success && statsResult.data) {
       stats.value = statsResult.data

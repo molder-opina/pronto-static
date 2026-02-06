@@ -82,7 +82,7 @@ const RESTAURANT_ASSETS = window.APP_CONFIG?.restaurant_assets || '';
 const STATIC_BASE = window.APP_CONFIG?.static_host_url || '';
 const PRODUCT_PLACEHOLDER = RESTAURANT_ASSETS
     ? `${RESTAURANT_ASSETS}/icons/placeholder.png`
-    : '/static/img/placeholder.png';
+    : '/assets/images/default-avatar.png';
 
 const currencySymbol = window.APP_SETTINGS?.currency_symbol || '$';
 

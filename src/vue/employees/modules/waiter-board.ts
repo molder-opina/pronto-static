@@ -191,16 +191,16 @@ class WaiterBoard {
     console.log('[WAITER] Initialize called');
     this.ordersData = Array.isArray(window.WAITER_ORDERS_DATA)
       ? (window.WAITER_ORDERS_DATA as WaiterOrder[]).map((order) => {
-          const normalized = normalizeWorkflowStatus(
-            order.workflow_status,
-            order.workflow_status_legacy
-          );
-          return {
-            ...order,
-            workflow_status: normalized,
-            workflow_status_legacy: normalized,
-          };
-        })
+        const normalized = normalizeWorkflowStatus(
+          order.workflow_status,
+          order.workflow_status_legacy
+        );
+        return {
+          ...order,
+          workflow_status: normalized,
+          workflow_status_legacy: normalized,
+        };
+      })
       : [];
     this.ordersData.forEach((order) => this.orders.set(order.id, order)); // Populate the new Map
 
@@ -460,70 +460,67 @@ class WaiterBoard {
       );
 
       try {
-        const response = await fetch('/api/notifications/admin/call', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({
-            table_number: null, // Optional: could get from selected order
-            order_id: null,
-            reason: 'Asistencia requerida',
-          }),
-        });
+        try {
+          const result = await requestJSON<any>('/api/notifications/admin/call', {
+            method: 'POST',
+            body: {
+              table_number: null, // Optional: could get from selected order
+              order_id: null,
+              reason: 'Asistencia requerida',
+            },
+          });
 
-        const result = await response.json().catch(() => ({}) as any);
-
-        if (response.ok && (result.status === 'success' || !result.status)) {
-          // Show success feedback
-          btn.replaceChildren(
-            createFragment(`
+          if (result.status === 'success' || !result.status) {
+            // Show success feedback
+            btn.replaceChildren(
+              createFragment(`
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M20 6L9 17l-5-5"></path>
                         </svg>
                         ¡Supervisor notificado!
                     `)
-          );
-          btn.classList.remove('btn--primary');
-          btn.classList.add('btn--success');
+            );
+            btn.classList.remove('btn--primary');
+            btn.classList.add('btn--success');
 
-          // Update status display
-          if (statusEl && statusDetails) {
-            statusEl.style.display = 'block';
-            const now = new Date();
-            statusDetails.textContent = `Solicitado a las ${now.toLocaleTimeString()}`;
+            // Update status display
+            if (statusEl && statusDetails) {
+              statusEl.style.display = 'block';
+              const now = new Date();
+              statusDetails.textContent = `Solicitado a las ${now.toLocaleTimeString()}`;
+            }
+
+            // Reset button after 5 seconds
+            setTimeout(() => {
+              btn.replaceChildren(...originalNodes);
+              btn.classList.remove('btn--success');
+              btn.classList.add('btn--primary');
+            }, 5000);
+          } else {
+            throw new Error(result.message || result.error || 'Error al llamar administrador');
           }
-
-          // Reset button after 5 seconds
-          setTimeout(() => {
-            btn.replaceChildren(...originalNodes);
-            btn.classList.remove('btn--success');
-            btn.classList.add('btn--primary');
-          }, 5000);
-        } else {
-          throw new Error(result.message || result.error || 'Error al llamar administrador');
-        }
-      } catch (error) {
-        console.error('[WAITER] Error calling admin:', error);
-        // Fallback optimista: informamos al usuario y dejamos botón listo
-        btn.replaceChildren(
-          createFragment(`
+        } catch (error) {
+          console.error('[WAITER] Error calling admin:', error);
+          // Fallback optimista: informamos al usuario y dejamos botón listo
+          btn.replaceChildren(
+            createFragment(`
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M20 6L9 17l-5-5"></path>
                     </svg>
                     Supervisor notificado (fallback)
                 `)
-        );
-        btn.classList.remove('btn--primary', 'btn--danger');
-        btn.classList.add('btn--success');
-        setTimeout(() => {
-          btn.replaceChildren(...originalNodes);
-          btn.classList.remove('btn--success');
-          btn.classList.add('btn--primary');
-        }, 3000);
-      } finally {
-        btn.classList.remove('loading');
-      }
-    });
+          );
+          btn.classList.remove('btn--primary', 'btn--danger');
+          btn.classList.add('btn--success');
+          setTimeout(() => {
+            btn.replaceChildren(...originalNodes);
+            btn.classList.remove('btn--success');
+            btn.classList.add('btn--primary');
+          }, 3000);
+        } finally {
+          btn.classList.remove('loading');
+        }
+      });
   }
 
   private handleTableClick(event: Event): void {
@@ -869,19 +866,13 @@ class WaiterBoard {
     const controller = new AbortController();
     const timeout = window.setTimeout(() => controller.abort(), 10000);
     try {
-      const response = await fetch(`/api/orders/${orderId}/notes`, {
+      const data = await requestJSON<{ waiter_notes: string }>(`/api/orders/${orderId}/notes`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ notes: noteField.value }),
+        body: { notes: noteField.value },
         signal: controller.signal,
       });
       window.clearTimeout(timeout);
-      if (!response.ok) {
-        const text = await response.text();
-        throw new Error(text || 'No se pudo guardar la nota.');
-      }
-      const data = await response.json();
+
       noteField.value = data.waiter_notes || '';
       if (row) {
         row.dataset.waiterNotes = data.waiter_notes || '';
@@ -1659,9 +1650,7 @@ class WaiterBoard {
 
   private async loadPendingCalls(): Promise<void> {
     try {
-      const response = await fetch('/api/notifications/waiter/pending');
-      if (!response.ok) throw new Error('Error al cargar llamadas');
-      const data = await response.json();
+      const data = await requestJSON<any>('/api/notifications/waiter/pending');
       const payload = data?.data ?? data;
       this.pendingCalls = Array.isArray(payload?.waiter_calls)
         ? payload.waiter_calls.map((item: any) => this.normalizeWaiterCall(item)).filter(Boolean)
@@ -1754,13 +1743,11 @@ class WaiterBoard {
       return;
     }
     try {
-      const response = await fetch(`/api/notifications/waiter/confirm/${callId}`, {
+      await requestJSON(`/api/notifications/waiter/confirm/${callId}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ employee_id: employeeId }),
+        body: { employee_id: employeeId },
       });
-      if (!response.ok) throw new Error('Error al confirmar llamada');
+      // if (!response.ok) throw new Error('Error al confirmar llamada');
       this.pendingCalls = this.pendingCalls.filter((call) => call.id !== callId);
       this.updateNotificationsBadge();
       this.renderNotifications();
@@ -2060,9 +2047,7 @@ class WaiterBoard {
   private async shouldStoreCancelReason(): Promise<boolean> {
     if (this.storeCancelReasonCache !== null) return this.storeCancelReasonCache;
     try {
-      const res = await fetch('/api/config/store_cancel_reason');
-      if (!res.ok) throw new Error('config missing');
-      const data = await res.json().catch(() => ({}));
+      const data = await requestJSON<any>('/api/config/store_cancel_reason');
       const raw = (data as any)?.value ?? (data as any)?.config_value ?? (data as any)?.configValue;
       this.storeCancelReasonCache = String(raw ?? 'true').toLowerCase() !== 'false';
     } catch (_error) {
@@ -2447,11 +2432,11 @@ class WaiterBoard {
         const cancelledDate = escapeHtml(
           cancelledAt
             ? new Date(cancelledAt).toLocaleString('es-MX', {
-                day: '2-digit',
-                month: 'short',
-                hour: '2-digit',
-                minute: '2-digit',
-              })
+              day: '2-digit',
+              month: 'short',
+              hour: '2-digit',
+              minute: '2-digit',
+            })
             : '—'
         );
         const orderId = escapeHtml(String(order.id));
@@ -2959,11 +2944,11 @@ class WaiterBoard {
         // Check if I have ANY other order from the same session (multi-order support)
         const hasOtherOrderInSession = order.session_id
           ? Array.from(this.orders.values()).some(
-              (o) =>
-                o.session_id === order.session_id &&
-                o.id !== order.id &&
-                o.waiter_id === this.currentEmployeeId
-            )
+            (o) =>
+              o.session_id === order.session_id &&
+              o.id !== order.id &&
+              o.waiter_id === this.currentEmployeeId
+          )
           : false;
 
         let shouldShow = false;
@@ -3095,15 +3080,8 @@ class WaiterBoard {
 
     try {
       // Paid/closed status lives on orders, not sessions.
-      const response = await fetch('/api/orders?status=paid&status=cancelled');
-      if (!response.ok) {
-        const errorPayload = await response.json().catch(() => ({}));
-        const msg =
-          errorPayload?.message || errorPayload?.error || 'Error al cargar órdenes';
-        throw new Error(msg);
-      }
+      const data = await requestJSON<any>('/api/orders?status=paid&status=cancelled');
 
-      const data = await response.json().catch(() => ({} as any));
       const orders: WaiterOrder[] =
         (data?.data?.orders as WaiterOrder[]) ||
         (data?.orders as WaiterOrder[]) ||
@@ -3428,21 +3406,9 @@ class WaiterBoard {
         `);
 
     try {
-      const response = await fetch(`/api/sessions/${sessionId}/ticket`, {
+      const data = await requestJSON<{ ticket: string }>(`/api/sessions/${sessionId}/ticket`, {
         headers: { Accept: 'application/json' },
       });
-
-      const contentType = (response.headers.get('content-type') || '').toLowerCase();
-      const isJSON = contentType.includes('application/json');
-
-      const data = isJSON ? await response.json().catch(() => null) : null;
-
-      if (!response.ok) {
-        const message =
-          (data && (data.error || data.message)) ||
-          `No se pudo generar el ticket (HTTP ${response.status})`;
-        throw new Error(message);
-      }
 
       if (!data || typeof data.ticket !== 'string') {
         // Common cases: redirect to login/HTML error page/502 proxy page
@@ -3629,14 +3595,8 @@ class WaiterBoard {
   public async refreshOrders(showLoading: boolean = false): Promise<void> {
     try {
       console.log('[WAITER] Refreshing orders from server...');
-      const response = await fetch('/api/orders?include_closed=true&include_delivered=true', {
-        showLoading,
-      } as RequestInit);
-      if (!response.ok) {
-        throw new Error('Error al cargar órdenes');
-      }
+      const data = await requestJSON<any>('/api/orders?include_closed=true&include_delivered=true');
 
-      const data = await response.json();
       const newOrders: WaiterOrder[] =
         (data?.data?.orders as WaiterOrder[]) ||
         (data?.orders as WaiterOrder[]) ||
@@ -4016,12 +3976,7 @@ class WaiterBoard {
 
     // Fetch order details with items
     try {
-      const response = await fetch(`/api/orders/${orderId}/delivery-status`);
-      if (!response.ok) {
-        throw new Error('No se pudo cargar el estado de entrega');
-      }
-
-      const data = await response.json();
+      const data = await requestJSON<any>(`/api/orders/${orderId}/delivery-status`);
       this.renderPartialDeliveryItems(data);
 
       // Show modal
@@ -4064,13 +4019,13 @@ class WaiterBoard {
         const itemQuantity = escapeHtml(String(item.quantity));
         const deliveredAt = item.delivered_at
           ? escapeHtml(
-              new Date(item.delivered_at).toLocaleString('es-MX', {
-                day: '2-digit',
-                month: '2-digit',
-                hour: '2-digit',
-                minute: '2-digit',
-              })
-            )
+            new Date(item.delivered_at).toLocaleString('es-MX', {
+              day: '2-digit',
+              month: '2-digit',
+              hour: '2-digit',
+              minute: '2-digit',
+            })
+          )
           : '';
 
         return `
@@ -4088,15 +4043,14 @@ class WaiterBoard {
                                 ${isDelivered ? '✅ Entregado' : `${itemQuantity} unid.`}
                             </span>
                         </div>
-                        ${
-                          isDelivered
-                            ? `
+                        ${isDelivered
+            ? `
                             <div class="partial-delivery-item__info">
                                 Entregado el ${deliveredAt}
                             </div>
                         `
-                            : ''
-                        }
+            : ''
+          }
                     </div>
                 </label>
             `;
@@ -4180,22 +4134,14 @@ class WaiterBoard {
     try {
       showFeedback(this.feedbackEl, 'Entregando items...');
 
-      const response = await fetch(`/api/orders/${this.partialDeliveryOrderId}/deliver-items`, {
+      const data = await requestJSON<any>(`/api/orders/${this.partialDeliveryOrderId}/deliver-items`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
+        body: {
           item_ids: itemIds,
           employee_id: employeeId,
-        }),
+        },
       });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Error al entregar items');
-      }
-
-      const data = await response.json();
       const normalizedStatus = normalizeWorkflowStatus(
         data.workflow_status,
         data.workflow_status_legacy
