@@ -1,3 +1,5 @@
+const API_BASE = 'https://api.pronto.com';
+
 interface ProntoUser {
   name: string;
   email: string;
@@ -265,9 +267,10 @@ async function handleLoginSubmit(form: HTMLFormElement): Promise<void> {
   submitBtn.disabled = true;
 
   try {
-    const response = await fetch('/api/auth/login', {
+    const response = await fetch(`${API_BASE}/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify({ email: emailInput.value, password: passwordInput.value }),
     });
     const data = await response.json();
@@ -316,9 +319,10 @@ async function handleRegisterSubmit(form: HTMLFormElement): Promise<void> {
   }
 
   try {
-    const response = await fetch('/api/auth/register', {
+    const response = await fetch(`${API_BASE}/api/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify({
         name: nameInput.value,
         email: emailInput.value,

@@ -264,16 +264,9 @@ class ThankYouPage {
   }
 
   private async submitClipPayment(): Promise<void> {
-    try {
-      await requestJSON(`/api/sessions/${this.session.id}/pay/clip`, { method: 'POST' });
-      window.showNotification?.('Pago con terminal registrado', 'success');
-      this.markPaymentCompleted();
-    } catch (error) {
-      window.showNotification?.(
-        (error as Error).message || 'Error al procesar pago con terminal',
-        'error'
-      );
-    }
+    // Clip payment disabled - not implemented in pronto-api
+    window.showNotification?.('Pago con terminal próximamente', 'info');
+    return;
   }
 
   private markPaymentCompleted(): void {

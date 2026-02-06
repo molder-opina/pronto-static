@@ -1,3 +1,4 @@
+const API_BASE = 'https://api.pronto.com';
 const SESSION_STORAGE_KEY = 'pronto-session-id';
 const SESSION_TIMESTAMP_KEY = 'pronto-session-timestamp';
 const ANONYMOUS_CLIENT_ID_KEY = 'pronto-anonymous-client-id';
@@ -420,10 +421,11 @@ async function validateAndCleanSession(): Promise<void> {
     // Call server validation endpoint
     // The server will validate against Flask session (HTTP-only cookie)
     // and return current session state
-    const response = await fetch('/api/session/validate', {
-      method: 'GET',
+    const response = await fetch(`${API_BASE}/api/sessions/validate`, {
+      method: 'POST',
       credentials: 'include', // Include cookies
       headers: {
+        'Content-Type': 'application/json',
         Accept: 'application/json',
       },
     });
