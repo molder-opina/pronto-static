@@ -385,7 +385,7 @@ function updateHeaderAvatar(user: ProntoUser | null): void {
   } else {
     // Default avatar
     // Use the global config for static host, falling back to 9088 if missing
-    const staticHost = window.APP_CONFIG?.static_host_url || 'http://localhost:9088';
+    const staticHost = window.APP_CONFIG?.static_host_url || '';
     headerAvatar.src = `${staticHost}/assets/images/default-avatar.png`;
   }
 }
