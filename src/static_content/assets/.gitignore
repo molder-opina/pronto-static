@@ -4,3 +4,4 @@
 !js/
 !js/shared/
 !js/shared/bindings.js
+!pronto/**
