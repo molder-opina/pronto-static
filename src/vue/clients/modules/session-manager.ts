@@ -13,7 +13,7 @@ export async function initSession(tableId: number): Promise<number> {
   const cachedAnonId = localStorage.getItem('pronto-anon-id');
 
   if (cachedSessionId) {
-    const ok = await validateSession(parseInt(cachedSessionId, 10), tableId);
+    const ok = await validateSession();
     if (ok) return parseInt(cachedSessionId, 10);
     localStorage.removeItem('pronto-session-id');
   }
@@ -37,11 +37,12 @@ async function openSession(tableId: number, anonId: string | null): Promise<Sess
   return payload.data as SessionData;
 }
 
-async function validateSession(sessionId: number, tableId: number): Promise<boolean> {
+async function validateSession(): Promise<boolean> {
   try {
-    const r = await fetch(`/api/sessions/validate?session_id=${sessionId}&table_id=${tableId}`);
+    const r = await fetch('/api/sessions/me');
+    if (r.status === 401 || r.status === 403) return false;
     const payload = await r.json().catch(() => ({}));
-    return payload.valid === true;
+    return payload.mode !== undefined;
   } catch {
     return false;
   }

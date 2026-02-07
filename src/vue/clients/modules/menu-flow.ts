@@ -521,7 +521,20 @@ export class MenuFlow {
       if (clickableArea) {
         const card = clickableArea.closest('.menu-item-card') as HTMLElement;
         if (card) {
-          const itemId = Number(card.dataset.itemId);
+          // Debug logging
+          console.log('__CLICK_DEBUG__PRONTO__', {
+            targetTag: (target as HTMLElement)?.tagName,
+            clickableHTML: (clickableArea as HTMLElement)?.outerHTML?.slice(0, 200),
+            cardFound: !!card,
+            cardTag: card?.tagName,
+            hasAttr: card?.hasAttribute?.('data-item-id'),
+            attrValue: card?.getAttribute?.('data-item-id'),
+            datasetValue: (card as any)?.dataset?.itemId,
+          });
+          // Use getAttribute for reliability
+          const raw = card.getAttribute('data-item-id');
+          const itemId = raw ? Number(raw) : NaN;
+          console.log('[MenuFlow] Card clicked, itemId:', itemId);
           if (!Number.isNaN(itemId)) {
             this.openItemModal(itemId);
           }

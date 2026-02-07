@@ -520,7 +520,11 @@ class WaiterBoard {
         } finally {
           btn.classList.remove('loading');
         }
-      });
+      } catch (error) {
+        console.error('[WAITER] Unexpected error:', error);
+        btn.classList.remove('loading');
+      }
+    });
   }
 
   private handleTableClick(event: Event): void {

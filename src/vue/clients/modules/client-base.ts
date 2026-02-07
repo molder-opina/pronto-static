@@ -418,14 +418,12 @@ async function validateAndCleanSession(): Promise<void> {
   // 3. Session is not expired
   // 4. Session status is valid
   try {
-    // Call server validation endpoint
-    // The server will validate against Flask session (HTTP-only cookie)
-    // and return current session state
-    const response = await fetch(`${API_BASE}/api/sessions/validate`, {
-      method: 'POST',
+    // Call server validation endpoint (/me uses JWT)
+    // Returns current session state without PII
+    const response = await fetch(`${API_BASE}/api/sessions/me`, {
+      method: 'GET',
       credentials: 'include', // Include cookies
       headers: {
-        'Content-Type': 'application/json',
         Accept: 'application/json',
       },
     });
